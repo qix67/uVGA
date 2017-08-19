@@ -1,0 +1,19 @@
+{
+  "name": "uVGA",
+  "frameworks": "Arduino",
+  "platforms": "Teensy",
+  "keywords": "VGA",
+  "description": "Display VGA image",
+  "url": "",
+  "authors":
+  {
+    "name": "Eric PREVOTEAU",
+    "maintainer": true
+  },
+  "repository":
+  {
+      "type": "git",
+      "url": "https://github.com/qix67/uVGA"
+  },
+  "version": "1.0"
+}
