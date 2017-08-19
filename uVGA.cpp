@@ -112,15 +112,17 @@ uVGA::uVGA(int dma_number, int sram_u_dma_number, int sram_u_dma_fix_number, int
 	// it is address of FTM0_SC, FTM1_SC, FTM2_SC, FTM3_SC
 	static FTM_REGS_t *FTM_address[4] = {FTM0_ADDR, FTM1_ADDR, FTM2_ADDR,FTM3_ADDR};
 
-	static volatile uint8_t *dma_chprio[32] = {
+	static volatile uint8_t *dma_chprio[DMA_NUM_CHANNELS] = {
 																&DMA_DCHPRI0,  &DMA_DCHPRI1,  &DMA_DCHPRI2,  &DMA_DCHPRI3,
 																&DMA_DCHPRI4,  &DMA_DCHPRI5,  &DMA_DCHPRI6,  &DMA_DCHPRI7,
 																&DMA_DCHPRI8,  &DMA_DCHPRI9,  &DMA_DCHPRI10, &DMA_DCHPRI11,
-																&DMA_DCHPRI12, &DMA_DCHPRI13, &DMA_DCHPRI14, &DMA_DCHPRI15,
-																&DMA_DCHPRI16, &DMA_DCHPRI17, &DMA_DCHPRI18, &DMA_DCHPRI19,
+																&DMA_DCHPRI12, &DMA_DCHPRI13, &DMA_DCHPRI14, &DMA_DCHPRI15
+#if DMA_NUM_CHANNELS > 16
+																,&DMA_DCHPRI16, &DMA_DCHPRI17, &DMA_DCHPRI18, &DMA_DCHPRI19,
 																&DMA_DCHPRI20, &DMA_DCHPRI21, &DMA_DCHPRI22, &DMA_DCHPRI23,
 																&DMA_DCHPRI24, &DMA_DCHPRI25, &DMA_DCHPRI26, &DMA_DCHPRI27,
 																&DMA_DCHPRI28, &DMA_DCHPRI29, &DMA_DCHPRI30, &DMA_DCHPRI31
+#endif
 															};
 
 	static int FTM_channel_to_dma_sources[4][8] = {
@@ -680,7 +682,7 @@ void uVGA::set_pin_alternate_function_to_FTM(int pin_num)
 		volatile uint32_t *pin_config;
 		int alt_func_mask;
 	} config[] = {
-		// from K66 sub-gamily reference manual, K66 Signal Multiplexing and pin Assignments
+		// from K66 sub-family reference manual, K66 Signal Multiplexing and pin Assignments
 											{&CORE_PIN0_CONFIG, 0x0000},		// PORTB_PCR16		x
 											{&CORE_PIN1_CONFIG, 0x0000},		// PORTB_PCR17		x
 											{&CORE_PIN2_CONFIG, 0x0400},		// PORTD_PCR0		FTM3_CH0
