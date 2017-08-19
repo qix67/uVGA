@@ -357,7 +357,7 @@ uVGAmodeline modeline = {
 #elif F_CPU == 72000000
 
 #ifdef UVGA_DEFAULT_REZ
-#define UVGA_72M_340X240
+#define UVGA_72M_602X240
 #endif
 
 // ======================================================
