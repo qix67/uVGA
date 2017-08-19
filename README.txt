@@ -11,7 +11,12 @@ Wiring
 ------
 
 Hsync pin (default: 22) -> 82R resistor -> VGA 13		// depend on HSync FTM channel 
+
 Vsync pin (default: 29) -> 82R resistor -> VGA 14		// can be changed to any pin except pin of port D
+
+   on teensy 3.2, default Vsync pin is pin 10.
+
+
 
 Teensy pin 5  (port D, bit 7) -> 2k2 resistor -> VGA pin 2 (green)
 Teensy pin 21 (port D, bit 6) -> 1k resistor -> VGA pin 2 (green)
@@ -85,6 +90,11 @@ uVGA(int dma_number = 0, int sram_u_dma_number = 1, int sram_u_dma_fix_number = 
     - (3,0) => pin 2
     - (3,4) => pin 35
     - (3,6) => pin 37
+
+  On teensy 3.2, valid pairs (not on port D) are:
+    - (0,0) => pin 22
+    - (0,2) => pin 9. This FTM can use pin 22 but you will have to configure it
+                      yourself.
 
   1 or 3 DMA will be used to generate video signal, the 4th one is (will be)
   used to accelerate some drawing functions. Currently, only 2 functions support

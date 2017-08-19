@@ -131,11 +131,7 @@ uVGA::uVGA(int dma_number, int sram_u_dma_number, int sram_u_dma_fix_number, int
 																		DMAMUX_SOURCE_FTM0_CH0, DMAMUX_SOURCE_FTM0_CH1,
 																		DMAMUX_SOURCE_FTM0_CH2, DMAMUX_SOURCE_FTM0_CH3,
 																		DMAMUX_SOURCE_FTM0_CH4, DMAMUX_SOURCE_FTM0_CH5,
-#ifdef CORE_FTM0_CH6_PIN
 																		DMAMUX_SOURCE_FTM0_CH6, DMAMUX_SOURCE_FTM0_CH7
-#else
-																		                     0,                      0,
-#endif
 																	},
 
 																	// FTM1
@@ -176,11 +172,7 @@ uVGA::uVGA(int dma_number, int sram_u_dma_number, int sram_u_dma_fix_number, int
 															CORE_FTM0_CH0_PIN,	CORE_FTM0_CH1_PIN,
 															CORE_FTM0_CH2_PIN,	CORE_FTM0_CH3_PIN,
 															CORE_FTM0_CH4_PIN,	CORE_FTM0_CH5_PIN,
-#ifdef CORE_FTM0_CH6_PIN
 															CORE_FTM0_CH6_PIN,	CORE_FTM0_CH7_PIN
-#else
-															                0,                   0
-#endif
 														},
 
 														// FTM1
@@ -310,7 +302,9 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 															&CORE_PIN20_PORTSET, &CORE_PIN21_PORTSET, &CORE_PIN22_PORTSET, &CORE_PIN23_PORTSET,
 															&CORE_PIN24_PORTSET, &CORE_PIN25_PORTSET, &CORE_PIN26_PORTSET, &CORE_PIN27_PORTSET,
 															&CORE_PIN28_PORTSET, &CORE_PIN29_PORTSET, &CORE_PIN30_PORTSET, &CORE_PIN31_PORTSET,
-															&CORE_PIN32_PORTSET, &CORE_PIN33_PORTSET, &CORE_PIN34_PORTSET, &CORE_PIN35_PORTSET,
+															&CORE_PIN32_PORTSET, &CORE_PIN33_PORTSET
+#if defined(CORE_PIN34_PORTSET)
+															                                        , &CORE_PIN34_PORTSET, &CORE_PIN35_PORTSET,
 															&CORE_PIN36_PORTSET, &CORE_PIN37_PORTSET, &CORE_PIN38_PORTSET, &CORE_PIN39_PORTSET,
 															&CORE_PIN40_PORTSET, &CORE_PIN41_PORTSET, &CORE_PIN42_PORTSET, &CORE_PIN43_PORTSET,
 															&CORE_PIN44_PORTSET, &CORE_PIN45_PORTSET, &CORE_PIN46_PORTSET, &CORE_PIN47_PORTSET,
@@ -318,6 +312,7 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 															&CORE_PIN52_PORTSET, &CORE_PIN53_PORTSET, &CORE_PIN54_PORTSET, &CORE_PIN55_PORTSET,
 															&CORE_PIN56_PORTSET, &CORE_PIN57_PORTSET, &CORE_PIN58_PORTSET, &CORE_PIN59_PORTSET,
 															&CORE_PIN60_PORTSET, &CORE_PIN61_PORTSET, &CORE_PIN62_PORTSET, &CORE_PIN63_PORTSET
+#endif
 														};
 
 	static volatile uint32_t *pin_pcor[] = {
@@ -329,7 +324,9 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 															&CORE_PIN20_PORTCLEAR, &CORE_PIN21_PORTCLEAR, &CORE_PIN22_PORTCLEAR, &CORE_PIN23_PORTCLEAR,
 															&CORE_PIN24_PORTCLEAR, &CORE_PIN25_PORTCLEAR, &CORE_PIN26_PORTCLEAR, &CORE_PIN27_PORTCLEAR,
 															&CORE_PIN28_PORTCLEAR, &CORE_PIN29_PORTCLEAR, &CORE_PIN30_PORTCLEAR, &CORE_PIN31_PORTCLEAR,
-															&CORE_PIN32_PORTCLEAR, &CORE_PIN33_PORTCLEAR, &CORE_PIN34_PORTCLEAR, &CORE_PIN35_PORTCLEAR,
+															&CORE_PIN32_PORTCLEAR, &CORE_PIN33_PORTCLEAR
+#ifdef CORE_PIN34_PORTCLEAR
+															                                            , &CORE_PIN34_PORTCLEAR, &CORE_PIN35_PORTCLEAR,
 															&CORE_PIN36_PORTCLEAR, &CORE_PIN37_PORTCLEAR, &CORE_PIN38_PORTCLEAR, &CORE_PIN39_PORTCLEAR,
 															&CORE_PIN40_PORTCLEAR, &CORE_PIN41_PORTCLEAR, &CORE_PIN42_PORTCLEAR, &CORE_PIN43_PORTCLEAR,
 															&CORE_PIN44_PORTCLEAR, &CORE_PIN45_PORTCLEAR, &CORE_PIN46_PORTCLEAR, &CORE_PIN47_PORTCLEAR,
@@ -337,6 +334,7 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 															&CORE_PIN52_PORTCLEAR, &CORE_PIN53_PORTCLEAR, &CORE_PIN54_PORTCLEAR, &CORE_PIN55_PORTCLEAR,
 															&CORE_PIN56_PORTCLEAR, &CORE_PIN57_PORTCLEAR, &CORE_PIN58_PORTCLEAR, &CORE_PIN59_PORTCLEAR,
 															&CORE_PIN60_PORTCLEAR, &CORE_PIN61_PORTCLEAR, &CORE_PIN62_PORTCLEAR, &CORE_PIN63_PORTCLEAR
+#endif
 														};
 
 	static uint32_t pin_bitmask[] = {
@@ -348,7 +346,9 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 															CORE_PIN20_BITMASK, CORE_PIN21_BITMASK, CORE_PIN22_BITMASK, CORE_PIN23_BITMASK,
 															CORE_PIN24_BITMASK, CORE_PIN25_BITMASK, CORE_PIN26_BITMASK, CORE_PIN27_BITMASK,
 															CORE_PIN28_BITMASK, CORE_PIN29_BITMASK, CORE_PIN30_BITMASK, CORE_PIN31_BITMASK,
-															CORE_PIN32_BITMASK, CORE_PIN33_BITMASK, CORE_PIN34_BITMASK, CORE_PIN35_BITMASK,
+															CORE_PIN32_BITMASK, CORE_PIN33_BITMASK
+#ifdef CORE_PIN34_BITMASK
+															                                      , CORE_PIN34_BITMASK, CORE_PIN35_BITMASK,
 															CORE_PIN36_BITMASK, CORE_PIN37_BITMASK, CORE_PIN38_BITMASK, CORE_PIN39_BITMASK,
 															CORE_PIN40_BITMASK, CORE_PIN41_BITMASK, CORE_PIN42_BITMASK, CORE_PIN43_BITMASK,
 															CORE_PIN44_BITMASK, CORE_PIN45_BITMASK, CORE_PIN46_BITMASK, CORE_PIN47_BITMASK,
@@ -356,6 +356,7 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 															CORE_PIN52_BITMASK, CORE_PIN53_BITMASK, CORE_PIN54_BITMASK, CORE_PIN55_BITMASK,
 															CORE_PIN56_BITMASK, CORE_PIN57_BITMASK, CORE_PIN58_BITMASK, CORE_PIN59_BITMASK,
 															CORE_PIN60_BITMASK, CORE_PIN61_BITMASK, CORE_PIN62_BITMASK, CORE_PIN63_BITMASK
+#endif
 														};
 
 
@@ -393,7 +394,6 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 	dma_config_choice = modeline->dma_settings;
 
 	vsync_bitmask = pin_bitmask[vsync_pin];
-
 	if(v_polarity == UVGA_POSITIVE_POLARITY)
 	{
 		vsync_gpio_no_sync_level = pin_psor[vsync_pin];
@@ -675,13 +675,12 @@ void uVGA::clocks_init()
 // ============================================================================
 void uVGA::set_pin_alternate_function_to_FTM(int pin_num)
 {
-#if defined(__MK64FX512__) || defined(__MK66FX1M0__)
-
 	static struct
 	{
 		volatile uint32_t *pin_config;
 		int alt_func_mask;
 	} config[] = {
+#if defined(__MK64FX512__) || defined(__MK66FX1M0__)
 		// from K66 sub-family reference manual, K66 Signal Multiplexing and pin Assignments
 											{&CORE_PIN0_CONFIG, 0x0000},		// PORTB_PCR16		x
 											{&CORE_PIN1_CONFIG, 0x0000},		// PORTB_PCR17		x
@@ -747,8 +746,44 @@ void uVGA::set_pin_alternate_function_to_FTM(int pin_num)
 											{&CORE_PIN61_CONFIG, 0x0000},		// PORTE_PCR3
 											{&CORE_PIN62_CONFIG, 0x0000},		// PORTE_PCR4
 											{&CORE_PIN63_CONFIG, 0x0000}		// PORTE_PCR5
-										};
+#elif defined(__MK20DX128__) || defined(__MK20DX256__)
+		// from K20 sub-family reference manual, K20 Signal Multiplexing and pin Assignments
+											{&CORE_PIN0_CONFIG, 0x0000},		// PORTB_PCR16		x
+											{&CORE_PIN1_CONFIG, 0x0000},		// PORTB_PCR17		x
+											{&CORE_PIN2_CONFIG, 0x0000},		// PORTD_PCR0		x
+											{&CORE_PIN3_CONFIG, 0x0300},		// PORTA_PCR12		FTM1_CH0
+											{&CORE_PIN4_CONFIG, 0x0300},		// PORTA_PCR13		FTM1_CH1
+											{&CORE_PIN5_CONFIG, 0x0400},		// PORTD_PCR7		FTM0_CH7
+											{&CORE_PIN6_CONFIG, 0x0400},		// PORTD_PCR4		FTM0_CH4
+											{&CORE_PIN7_CONFIG, 0x0000},		// PORTD_PCR2		x
+											{&CORE_PIN8_CONFIG, 0x0000},		// PORTD_PCR3		x
+											{&CORE_PIN9_CONFIG, 0x0400},		// PORTC_PCR3		FTM0_CH2
+											{&CORE_PIN10_CONFIG, 0x0400},		// PORTC_PCR4		FTM0_CH3
+											{&CORE_PIN11_CONFIG, 0x0000},		// PORTC_PCR6		x
+											{&CORE_PIN12_CONFIG, 0x0000},		// PORTC_PCR7		x
+											{&CORE_PIN13_CONFIG, 0x0000},		// PORTC_PCR5		x
+											{&CORE_PIN14_CONFIG, 0x0000},		// PORTD_PCR1		x
+											{&CORE_PIN15_CONFIG, 0x0000},		// PORTC_PCR0		x
+											{&CORE_PIN16_CONFIG, 0x0300},		// PORTB_PCR0		FTM1_CH0
+											{&CORE_PIN17_CONFIG, 0x0300},		// PORTB_PCR1		FTM1_CH1
+											{&CORE_PIN18_CONFIG, 0x0000},		// PORTB_PCR3		x
+											{&CORE_PIN19_CONFIG, 0x0000},		// PORTB_PCR2		x
+											{&CORE_PIN20_CONFIG, 0x0400},		// PORTD_PCR5		FTM0_CH5
+											{&CORE_PIN21_CONFIG, 0x0400},		// PORTD_PCR6		FTM0_CH6
+											{&CORE_PIN22_CONFIG, 0x0400},		// PORTC_PCR1		FTM0_CH0
+											{&CORE_PIN23_CONFIG, 0x0400},		// PORTC_PCR2		FTM0_CH1
+											{&CORE_PIN24_CONFIG, 0x0300},		// PORTA_PCR5     FTM0_CH2
+											{&CORE_PIN25_CONFIG, 0x0300},		// PORTB_PCR19		FTM2_CH1
+											{&CORE_PIN26_CONFIG, 0x0000},		// PORTE_PCR1		x
+											{&CORE_PIN27_CONFIG, 0x0000},		// PORTC_PCR9		x
+											{&CORE_PIN28_CONFIG, 0x0000},		// PORTC_PCR8		x
+											{&CORE_PIN29_CONFIG, 0x0000},		// PORTC_PCR10		x
+											{&CORE_PIN30_CONFIG, 0x0000},		// PORTC_PCR11		x
+											{&CORE_PIN31_CONFIG, 0x0000},		// PORTE_PCR0		x
+											{&CORE_PIN32_CONFIG, 0x0300},		// PORTB_PCR18		FTM2_CH0
+											{&CORE_PIN33_CONFIG, 0x0300}		// PORTA_PCR4     FTM0_CH1
 #endif
+										};
 
 	if(config[pin_num].alt_func_mask == 0)
 	{
@@ -1619,8 +1654,13 @@ uvga_error_t uVGA::dma_init()
 	// when only the CPU requests access, this has nearly no effects
 	// Kinetis Reference manual says 6 is the highest priority but AXBS_PRSn register description says 0 is the highest
 	// I assumed 6 is correct but wathever I chose, I see no difference during my test
+#if defined(__MK64FX512__) || defined(__MK66FX1M0__)
 	AXBS_PRS1 = 0x05432610;	//0x06543021;
 	AXBS_PRS3 = 0x05432610;	//0x06543021;
+#elif defined(__MK20DX128__) || defined(__MK20DX256__)
+	AXBS_PRS1 = 0x00002310;	//0x00003021;
+	AXBS_PRS3 = 0x00002310;	//0x00003021;
+#endif
 
 	// to gain 1 more cycle, when RAM and GPIO port is not used, attach them to DMA and for a fixed priority
 	// with this tip, DMA gains a lot of time... really a lot due to fact the frame buffer must be copied byte by byte.
@@ -1635,9 +1675,11 @@ uvga_error_t uVGA::dma_init()
 	AXBS_MGPCR0 = 0x00000001;
 	AXBS_MGPCR1 = 0x00000001;
 	AXBS_MGPCR3 = 0x00000001;
+#if defined(__MK64FX512__) || defined(__MK66FX1M0__)
 	AXBS_MGPCR4 = 0x00000001;
 	AXBS_MGPCR5 = 0x00000001;
 	AXBS_MGPCR6 = 0x00000001;
+#endif
 
 	// give absolute priority to DMA on SRAM_L and favor DMA on SRAM_U
 	// this final settings greatly improve pixel sharpness and line stability under heavy graphic load
