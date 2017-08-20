@@ -18,13 +18,13 @@ Vsync pin (default: 29) -> 82R resistor -> VGA 14		// can be changed to any pin 
 
 
 
-Teensy pin 5  (port D, bit 7) -> 470R resistor -> VGA pin 2 (green)
-Teensy pin 21 (port D, bit 6) -> 1k resistor -> VGA pin 2 (green)
-Teensy pin 20 (port D, bit 5) -> 2k2 resistor -> VGA pin 2 (green)
+Teensy pin 5  (port D, bit 7) -> 470R resistor -> VGA pin 1 (red)
+Teensy pin 21 (port D, bit 6) -> 1k resistor -> VGA pin 1 (red)
+Teensy pin 20 (port D, bit 5) -> 2k2 resistor -> VGA pin 1 (red)
 
-Teensy pin 6  (port D, bit 4) -> 470R resistor -> VGA pin 1 (red)
-Teensy pin 8  (port D, bit 3) -> 1k resistor -> VGA pin 1 (red)
-Teensy pin 7  (port D, bit 2) -> 2k2 resistor -> VGA pin 1(red)
+Teensy pin 6  (port D, bit 4) -> 470R resistor -> VGA pin 2 (green)
+Teensy pin 8  (port D, bit 3) -> 1k resistor -> VGA pin 2 (green)
+Teensy pin 7  (port D, bit 2) -> 2k2 resistor -> VGA pin 2(green)
 
 Teensy pin 14 (port D, bit 1) -> 390R resistor ->VGA Pin 3 (blue)
 Teensy pin 2  (port D, bit 0) -> 820R resistor ->VGA Pin 3 (blue)
