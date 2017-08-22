@@ -27,91 +27,8 @@
 #include <DMAChannel.h>
 #include "Print.h"
 
-typedef struct __attribute__((packed))
-{
-	volatile uint32_t SC;	// Channel Status And Control
-	volatile uint32_t V;		// Channel Value
-} FTM_CHANNEL_REGS_t;
-
-typedef struct __attribute__((packed))
-{
-	volatile uint32_t SC;		// status and control
-	volatile uint32_t CNT;		// Counter
-	volatile uint32_t MOD;     // Modulo
-	FTM_CHANNEL_REGS_t C[8];	// Channels Status and Control
-	volatile uint32_t CNTIN;	// Counter Initial Value
-	volatile uint32_t STATUS;	// Capture And Compare Status
-	volatile uint32_t MODE;		// Features Mode Selection
-	volatile uint32_t SYNC;		// Synchronization
-	volatile uint32_t OUTINIT;	// Initial State For Channels Output
-	volatile uint32_t OUTMASK;	// Output Mask
-	volatile uint32_t COMBINE;	// Function For Linked Channels
-	volatile uint32_t DEADTIME;// Deadtime Insertion Control
-	volatile uint32_t EXTTRIG;	// FTM External Trigger
-	volatile uint32_t POL;		// Channels Polarity
-	volatile uint32_t FMS;		// Fault Mode Status
-	volatile uint32_t FILTER;	// Input Capture Filter Control
-	volatile uint32_t FLTCTRL;	// Fault Control
-	volatile uint32_t QDCTRL;	// Quadrature Decoder Control And Status
-	volatile uint32_t CONF;		// Configuration
-	volatile uint32_t FLTPOL;	// FTM Fault Input Polarity
-	volatile uint32_t SYNCONF;	// Synchronization Configuration
-	volatile uint32_t INVCTRL;	// FTM Inverting Control
-	volatile uint32_t SWOCTRL;	// FTM Software Output Control
-	volatile uint32_t PWMLOAD;	// FTM PWM Load
-} FTM_REGS_t;
-
-// values taken from kinetis.h of teensyduino
-#define FTM0_ADDR ((FTM_REGS_t*)(&FTM0_SC))
-#define FTM1_ADDR ((FTM_REGS_t*)(&FTM1_SC))
-
-#if defined(FTM2_SC)
-#define FTM2_ADDR ((FTM_REGS_t*)(&FTM2_SC))
-#else
-#define FTM2_ADDR NULL
-#endif
-
-#if 0
-//defined(FTM3_SC)
-#define FTM3_ADDR ((FTM_REGS_t*)(&FTM3_SC))
-#else
-#define FTM3_ADDR NULL
-#endif
-
-
-typedef struct __attribute__((packed))
-{	volatile uint32_t CR;		// control
-	volatile uint32_t ES;		// error status
-	volatile uint32_t __empty0;	// empty area
-	volatile uint32_t ERQ;		// enable request
-	volatile uint32_t __empty1;	// empty area
-	volatile uint32_t EEI;		// enable error interrupt
-
-	volatile uint8_t CEEI;		// clear enable error interrupt
-	volatile uint8_t SEEI;		// set enable error interrupt
-	volatile uint8_t CERQ;		// clear enable request
-	volatile uint8_t SERQ;		// set enable request
-	volatile uint8_t CDNE;		// clear DONE status bit
-	volatile uint8_t SSRT;		// set START bit
-	volatile uint8_t CERR;		// clear error
-	volatile uint8_t CINT;		// clear interrupt request
-
-	volatile uint32_t __empty2;	// empty area
-	volatile uint32_t INT;		// interrupt request
-	volatile uint32_t __empty3;	// empty area
-	volatile uint32_t ERR;		// error
-	volatile uint32_t __empty4;	// empty area
-	volatile uint32_t HRS;		// hardware request
-	volatile uint32_t __empty5;	// empty area
-	volatile uint32_t __empty6;	// empty area
-	volatile uint32_t __empty7;	// empty area
-	volatile uint32_t EARS;		// asynchronous request stop register
-	
-	volatile uint8_t __empty8[0x4008100-0x4008048];
-	volatile uint8_t DCHPRI[16];		// channel n priority. WARNING: Order is 3,2,1,0,7,6,5,4,11,10,9,8,15,14,13,12
-} EDMA_REGs;
-
-#define EDMA_ADDR ((EDMA_REGs*)(&DMA_CR))
+#include <uVGA_FTM.h>
+#include <uVGA_DMA.h>
 
 typedef enum uvga_error_t
 {
@@ -148,8 +65,11 @@ typedef enum uvga_pixel_hstretch
 
 typedef enum uvga_dma_settings
 {
-	UVGA_DMA_AUTO,				// let library decide if multiple DMA channels are required
-	UVGA_DMA_SINGLE,			// force library to use only one DMA channel
+	// let library decide if multiple DMA channels are required
+	UVGA_DMA_AUTO,				// RGB signal on GPIO
+
+	// force library to use only one DMA channel
+	UVGA_DMA_SINGLE,			// RGB signal on GPIO
 } uvga_dma_settings;
 
 typedef enum uvga_text_direction
@@ -160,15 +80,7 @@ typedef enum uvga_text_direction
 	UVGA_DIR_BOTTOM,
 } uvga_text_direction;
 
-#define PERIPHERAL_START_ADDRESS				0x40000000
-#define PERIPHERAL_BITBAND_START_ADDRESS 	0x44000000
-// Each bit of PERIPHERAL area is mapped as 32 bits value (4 bytes) in PERIPHERAL_BITBAND area
-#define PERIPHERAL_BITBAND_ADDR(addr, bit)  ((((uint32_t)(addr)) - PERIPHERAL_START_ADDRESS) * 32 + (bit) * sizeof(uint32_t) + PERIPHERAL_BITBAND_START_ADDRESS)
-
 #define SRAM_U_START_ADDRESS				0x20000000
-#define SRAM_U_BITBAND_START_ADDRESS 	0x24000000			// or 0x22000000
-// Each bit of SRAM_U is mapped as 32 bits value (4 bytes) in SRAM_U_BITBAND area
-#define SRAM_U_BITBAND_ADDR(addr, bit)  ((((uint32_t)(addr)) - SRAM_U_START_ADDRESS) * 32 + (bit) * sizeof(uint32_t) + SRAM_U_BITBAND_START_ADDRESS)
 
 // to provide value from EDID or Modeline
 typedef struct
@@ -343,6 +255,9 @@ private:
 
 	FTM_REGS_t *vftm;
 
+	// pixel pin address
+	volatile void *pixel_pin_address;	// on GPIO mode, it is GPIOD_PDOR
+
 	// DMA settings
 	EDMA_REGs *edma;								// address of eDMA registers
 
@@ -425,12 +340,14 @@ private:
 	int print_window_h;	// text window height in CHARACTER
 
 	void clocks_init();
+	void signal_pins_init();
 	uvga_error_t dma_init();
-	uvga_error_t dma_init_dma_single_repeat_1();
-	uvga_error_t dma_init_dma_single_repeat_more_than_1();
-	uvga_error_t dma_init_dma_multiple_repeat_1();
-	uvga_error_t dma_init_dma_multiple_repeat_2();
-	uvga_error_t dma_init_dma_multiple_repeat_more_than_2();
+	uvga_error_t rgb332_dma_init_dma_single_repeat_1();
+	uvga_error_t rgb332_dma_init_dma_single_repeat_more_than_1();
+	uvga_error_t rgb332_dma_init_dma_multiple_repeat_1();
+	uvga_error_t rgb332_dma_init_dma_multiple_repeat_2();
+	uvga_error_t rgb332_dma_init_dma_multiple_repeat_more_than_2();
+	uvga_error_t monochrome_dma_init_repeat_1();
 
 	DMABaseClass::TCD_t *dma_append_vsync_tcds(DMABaseClass::TCD_t *cur_tcd);
 	
