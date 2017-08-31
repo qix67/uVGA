@@ -201,6 +201,16 @@ void uvga.copy(int s_x, int s_y, int d_x, int d_y, int w, int h);
   w and h will be automatically adjusted to fit fully in screen.
 
 
+void uvga.drawBitmap(int16_t x_pos, int16_t y_pos, uint8_t *bitmap, int16_t bitmap_width, int16_t bitmap_height);
+
+  Draw an out of screen bitmap (size: bitmap_width * bitmap_height pixels) on
+  screen at position (x_pos, y_pos).
+
+  The bitmap must have the same color mode as the modeline. The function will
+  automatically clip the bitmap if it should be copied partially out of 
+  frame buffer.
+
+
 void uvga.moveCursor(int column, int line);
 
   Moves the print position to (column, line)  

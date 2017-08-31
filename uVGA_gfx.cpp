@@ -296,6 +296,80 @@ mettre DMA_DCHPRIx[ECP] = 1
 */
 }
 
+// bitmap format must be the same as modeline.img_color_mode
+void uVGA::drawBitmap(int16_t x_pos, int16_t y_pos, uint8_t *bitmap, int16_t bitmap_width, int16_t bitmap_height)
+{
+	int fx;
+	int fy;
+	int fw;
+	int fh;
+	int bx;
+	int by;
+	int off_x, off_y;
+	uint8_t *bitmap_ptr;
+
+	fx = clip_x(x_pos);
+	// X position outside of image (right of image)
+	if(fx < x_pos)
+		return;
+
+	// compute the number of pixels to skip at the beginning of each bitmap line and the number of pixel per line to copy
+	if(fx > x_pos)
+	{
+		bx = fx - x_pos;
+		fw = bitmap_width - bx;
+
+		// X position outside of image (right of image)
+		if(fw <= 0)
+			return;
+	}
+	else
+	{	bx = 0;
+		fw = bitmap_width;
+	}
+
+	fy = clip_y(y_pos);
+	// Y position outside of image (bottom of image)
+	if(fy < y_pos)
+		return;
+
+	// compute the number of lines to skip at the beginning of bitmap and the number of lines to copy
+	if(fy > y_pos)
+	{
+		by = fy - y_pos;
+		fh = bitmap_height - by;
+
+		// Y position outside of image (right of image)
+		if(fh <= 0)
+			return;
+	}
+	else
+	{	by = 0;
+		fh = bitmap_height;
+	}
+
+	// here, (fx,fy) is the destination position in the image
+	//       (bx,by) is the position in the bitmap
+	//			(fw,fh) is the size to copy
+	
+	wait_idle_gfx_dma();
+
+	for(off_y = 0; off_y < fh; off_y++)
+	{
+		bitmap_ptr = bitmap + by * bitmap_width + bx;
+
+		for(off_x = 0; off_x < fw; off_x++)
+		{
+			drawPixelFast(	fx + off_x,
+								fy + off_y,
+								*bitmap_ptr++
+					);
+		}
+	}
+
+}
+
+
 
 #define SWAP(x,y) { (x)=(x)^(y); (y)=(x)^(y); (x)=(x)^(y); }
 

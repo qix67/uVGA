@@ -177,6 +177,7 @@ public:
 	void scroll(int x, int y, int w, int h, int dx, int dy,int col);
 
 	void copy(int s_x, int s_y, int d_x, int d_y, int w, int h);
+	void drawBitmap(int16_t x_pos, int16_t y_pos, uint8_t *bitmap, int16_t bitmap_width, int16_t bitmap_height);
 
 	void drawText(const char *text, int x, int y, int fgcol, int bgcol= -1, uvga_text_direction dir = UVGA_DIR_RIGHT);
 	void moveCursor(int column, int line);
