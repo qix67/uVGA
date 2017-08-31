@@ -37,6 +37,7 @@ extern "C"
 // valid video settings for 240MHz CPU
 // * UVGA_240M_703X300  (800x600@60Hz, FB resolution: 703x300), very stable but used nearly all memory
 // * UVGA_240M_452X240  (800x600@60Hz, FB resolution: 452x300), very stable
+// * UVGA_240M_560X240  (640x480@60Hz, FB resolution: 560x240), very stable
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #ifdef UVGA_240M_703X300
@@ -88,6 +89,33 @@ uVGAmodeline modeline = {
 	.pixel_h_stretch = UVGA_HSTRETCH_ULTRA_WIDE,
 	.dma_settings = UVGA_DMA_AUTO,
 	};
+#endif
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#ifdef UVGA_240M_560X240
+// 240Mhz, 640x480@60Hz, FB resolution: 560x240
+// image is stable but pixels slightly flicker on my LCD
+#pragma message "240Mhz 560x240"
+
+uVGAmodeline modeline = {
+   .pixel_clock = 25180000, //25.18Mhz
+   .hres = 560,
+   .hsync_start = 656,
+   .hsync_end = 752,
+   .htotal = 800,
+   .vres = 480,
+   .vsync_start = 490,
+   .vsync_end = 492,
+   .vtotal = 525,
+   .h_polarity = UVGA_NEGATIVE_POLARITY,
+   .v_polarity = UVGA_NEGATIVE_POLARITY,
+   .img_color_mode = UVGA_RGB332,
+   .repeat_line = 2,
+   .horizontal_position_shift = 10,
+	.pixel_h_stretch = UVGA_HSTRETCH_ULTRA_WIDE,
+	.dma_settings = UVGA_DMA_AUTO,
+	};
+
 #endif
 
 #elif F_CPU == 192000000

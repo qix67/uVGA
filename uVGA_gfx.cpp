@@ -48,7 +48,9 @@ inline int uVGA::clip_y(int y)
 // wait for GFX dma to become free
 inline void uVGA::wait_idle_gfx_dma()
 {
+#ifndef NO_DMA_GFX
 	while(edma->ERQ & (1 << gfx_dma_num));
+#endif
 }
 
 // draw a single pixel. If the pixel is out of screen, it is not displayed
