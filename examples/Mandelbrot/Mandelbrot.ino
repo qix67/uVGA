@@ -44,7 +44,7 @@ void loop()
 		for (col = 0; col < fb_width; col++)
 		{
 			c_re = (col - fb_width / 1.5) * 4.0 / fb_width;
-			c_im = (row - fb_height / 4.0) * 4.0 / fb_width;
+			c_im = (row - fb_height / 2.0) * 4.0 / fb_width;
 			x = 0;
 			y = 0;
 			iteration = 0;

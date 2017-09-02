@@ -62,7 +62,7 @@ void loop()
 	y = y + ynn * dt;
 	z = z + znn * dt;
 
-	uvga.drawPixel(fb_width / 2 + (fb_width / 90 * ((z / 2) - x)), fb_height / 7 + (fb_height / 90 * ((z / 2) - y)), vis ? 0xFF: 0);
+	uvga.drawPixel(fb_width / 2 + (fb_width / 90 * ((z / 2) - x)), fb_height / 4 + (fb_height / 45 * ((z / 2) - y)), vis ? 0xFF: 0);
 
 	if (cnt == 1500)
 	{

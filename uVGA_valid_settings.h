@@ -36,7 +36,8 @@ extern "C"
 // ======================================================
 // valid video settings for 240MHz CPU
 // * UVGA_240M_703X300  (800x600@60Hz, FB resolution: 703x300), very stable but used nearly all memory
-// * UVGA_240M_452X240  (800x600@60Hz, FB resolution: 452x300), very stable
+// * UVGA_240M_452X300  (800x600@60Hz, FB resolution: 452x300), very stable
+// * UVGA_240M_452X200  (800x600@60Hz, FB resolution: 452x200), very stable
 // * UVGA_240M_560X240  (640x480@60Hz, FB resolution: 560x240), very stable
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -85,6 +86,32 @@ uVGAmodeline modeline = {
    .v_polarity = UVGA_POSITIVE_POLARITY,
    .img_color_mode = UVGA_RGB332,
    .repeat_line = 2,
+   .horizontal_position_shift = 14,
+	.pixel_h_stretch = UVGA_HSTRETCH_ULTRA_WIDE,
+	.dma_settings = UVGA_DMA_AUTO,
+	};
+#endif
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#ifdef UVGA_240M_452X200
+// 240Mhz, 800x600@60Hz, FB resolution: 452x200
+// very stable
+#pragma message "240Mhz 452x200"
+
+uVGAmodeline modeline = {
+   .pixel_clock = 40000000, //40MHz
+   .hres = 452,
+   .hsync_start = 840,
+   .hsync_end = 968,
+   .htotal = 1056,
+   .vres = 600,
+   .vsync_start = 601,
+   .vsync_end = 605,
+   .vtotal = 628,
+   .h_polarity = UVGA_POSITIVE_POLARITY,
+   .v_polarity = UVGA_POSITIVE_POLARITY,
+   .img_color_mode = UVGA_RGB332,
+   .repeat_line = 3,
    .horizontal_position_shift = 14,
 	.pixel_h_stretch = UVGA_HSTRETCH_ULTRA_WIDE,
 	.dma_settings = UVGA_DMA_AUTO,

@@ -1201,8 +1201,8 @@ int uVGA::FTM_prescaler_to_selection(int prescaler)
 // retrieve real size of frame buffer
 void uVGA::get_frame_buffer_size(int *width, int *height)
 {
-	*width = img_w;
-	*height = img_h;
+	*width = fb_width;
+	*height = fb_height;
 }
 
 // ============================================================================

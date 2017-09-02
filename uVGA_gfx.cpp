@@ -24,6 +24,7 @@
 #define dump(v)      {Serial.print(#v ":"); Serial.println(v);}
 
 #define NO_DMA_GFX
+#define FAST_HLINE
 
 // clip X to inside horizontal range
 inline int uVGA::clip_x(int x)
@@ -51,6 +52,12 @@ inline void uVGA::wait_idle_gfx_dma()
 #ifndef NO_DMA_GFX
 	while(edma->ERQ & (1 << gfx_dma_num));
 #endif
+}
+
+// clear screen with an optional color
+void uVGA::clear(int color)
+{
+	uVGA::fillRect(0, 0, fb_width - 1, fb_height - 1, color);
 }
 
 // draw a single pixel. If the pixel is out of screen, it is not displayed
@@ -123,12 +130,43 @@ inline void uVGA::drawHLineFast(int y, int x1, int x2, int color)
 {
 #ifdef NO_DMA_GFX
 	uint8_t *ptr = frame_buffer + y * fb_row_stride + x1;
+#ifdef FAST_HLINE
+	int nb = x2 - x1 + 1;
 
+	// copy until address becomes a multiple of 4
+	while( (((uint32_t)ptr) & 3) && (nb > 0))
+	{
+		*ptr++ = color;
+		nb--;
+	}
+
+	if(nb)
+	{
+		uint32_t c = color;
+		c = c | (c << 8);
+		c = c | (c << 16);
+
+		while( nb >= 4)
+		{
+			*((uint32_t*)ptr) = c;
+			ptr += 4;
+			nb -= 4;
+		}
+
+		while(nb > 0)
+		{
+			*ptr++ = color;
+			nb--;
+		}
+	}
+
+#else
 	while(x1 <= x2)
 	{
 		*ptr++ = color;
 		x1++;
 	}
+#endif
 #else
 	gfx_dma_color[0] = color;
 
@@ -324,8 +362,17 @@ void uVGA::drawBitmap(int16_t x_pos, int16_t y_pos, uint8_t *bitmap, int16_t bit
 			return;
 	}
 	else
-	{	bx = 0;
-		fw = bitmap_width;
+	{
+		bx = 0;
+
+		if( (fx + bitmap_width) >= fb_width)
+		{
+			fw = fb_width - fx;
+		}
+		else
+		{
+			fw = bitmap_width;
+		}
 	}
 
 	fy = clip_y(y_pos);
@@ -344,8 +391,17 @@ void uVGA::drawBitmap(int16_t x_pos, int16_t y_pos, uint8_t *bitmap, int16_t bit
 			return;
 	}
 	else
-	{	by = 0;
-		fh = bitmap_height;
+	{
+		by = 0;
+
+		if( (fy + bitmap_height) >= fb_height)
+		{
+			fh = fb_height - fy;
+		}
+		else
+		{
+			fh = bitmap_height;
+		}
 	}
 
 	// here, (fx,fy) is the destination position in the image
@@ -356,7 +412,7 @@ void uVGA::drawBitmap(int16_t x_pos, int16_t y_pos, uint8_t *bitmap, int16_t bit
 
 	for(off_y = 0; off_y < fh; off_y++)
 	{
-		bitmap_ptr = bitmap + by * bitmap_width + bx;
+		bitmap_ptr = bitmap + (by + off_y) * bitmap_width + bx;
 
 		for(off_x = 0; off_x < fw; off_x++)
 		{

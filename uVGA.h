@@ -155,12 +155,7 @@ public:
 	// graphic primitives
 	// =========================================================
 
-	// clear screen with an optional color
-	inline void clear(int color = 0)
-	{
-		uVGA::fillRect(0, 0, fb_width - 1, fb_height - 1, color);
-	}
-
+	void clear(int color = 0);
 	int getPixel(int x, int y);
 	void drawPixel(int x, int y, int color);
 	void drawRect(int x0, int y0, int x1, int y1, int color);
