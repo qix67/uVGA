@@ -24,6 +24,7 @@
 #define dump(v)      {Serial.print(#v ":"); Serial.println(v);}
 
 #define NO_DMA_GFX
+#define FAST_HLINE
 
 // clip X to inside horizontal range
 inline int uVGA::clip_x(int x)
@@ -48,7 +49,15 @@ inline int uVGA::clip_y(int y)
 // wait for GFX dma to become free
 inline void uVGA::wait_idle_gfx_dma()
 {
+#ifndef NO_DMA_GFX
 	while(edma->ERQ & (1 << gfx_dma_num));
+#endif
+}
+
+// clear screen with an optional color
+void uVGA::clear(int color)
+{
+	uVGA::fillRect(0, 0, fb_width - 1, fb_height - 1, color);
 }
 
 // draw a single pixel. If the pixel is out of screen, it is not displayed
@@ -121,12 +130,43 @@ inline void uVGA::drawHLineFast(int y, int x1, int x2, int color)
 {
 #ifdef NO_DMA_GFX
 	uint8_t *ptr = frame_buffer + y * fb_row_stride + x1;
+#ifdef FAST_HLINE
+	int nb = x2 - x1 + 1;
 
+	// copy until address becomes a multiple of 4
+	while( (((uint32_t)ptr) & 3) && (nb > 0))
+	{
+		*ptr++ = color;
+		nb--;
+	}
+
+	if(nb)
+	{
+		uint32_t c = color;
+		c = c | (c << 8);
+		c = c | (c << 16);
+
+		while( nb >= 4)
+		{
+			*((uint32_t*)ptr) = c;
+			ptr += 4;
+			nb -= 4;
+		}
+
+		while(nb > 0)
+		{
+			*ptr++ = color;
+			nb--;
+		}
+	}
+
+#else
 	while(x1 <= x2)
 	{
 		*ptr++ = color;
 		x1++;
 	}
+#endif
 #else
 	gfx_dma_color[0] = color;
 
@@ -293,6 +333,98 @@ est-ce que ça ne pertubera pas le DMA vidéo ???
 mettre DMA_DCHPRIx[ECP] = 1
 */
 }
+
+// bitmap format must be the same as modeline.img_color_mode
+void uVGA::drawBitmap(int16_t x_pos, int16_t y_pos, uint8_t *bitmap, int16_t bitmap_width, int16_t bitmap_height)
+{
+	int fx;
+	int fy;
+	int fw;
+	int fh;
+	int bx;
+	int by;
+	int off_x, off_y;
+	uint8_t *bitmap_ptr;
+
+	fx = clip_x(x_pos);
+	// X position outside of image (right of image)
+	if(fx < x_pos)
+		return;
+
+	// compute the number of pixels to skip at the beginning of each bitmap line and the number of pixel per line to copy
+	if(fx > x_pos)
+	{
+		bx = fx - x_pos;
+		fw = bitmap_width - bx;
+
+		// X position outside of image (right of image)
+		if(fw <= 0)
+			return;
+	}
+	else
+	{
+		bx = 0;
+
+		if( (fx + bitmap_width) >= fb_width)
+		{
+			fw = fb_width - fx;
+		}
+		else
+		{
+			fw = bitmap_width;
+		}
+	}
+
+	fy = clip_y(y_pos);
+	// Y position outside of image (bottom of image)
+	if(fy < y_pos)
+		return;
+
+	// compute the number of lines to skip at the beginning of bitmap and the number of lines to copy
+	if(fy > y_pos)
+	{
+		by = fy - y_pos;
+		fh = bitmap_height - by;
+
+		// Y position outside of image (right of image)
+		if(fh <= 0)
+			return;
+	}
+	else
+	{
+		by = 0;
+
+		if( (fy + bitmap_height) >= fb_height)
+		{
+			fh = fb_height - fy;
+		}
+		else
+		{
+			fh = bitmap_height;
+		}
+	}
+
+	// here, (fx,fy) is the destination position in the image
+	//       (bx,by) is the position in the bitmap
+	//			(fw,fh) is the size to copy
+	
+	wait_idle_gfx_dma();
+
+	for(off_y = 0; off_y < fh; off_y++)
+	{
+		bitmap_ptr = bitmap + (by + off_y) * bitmap_width + bx;
+
+		for(off_x = 0; off_x < fw; off_x++)
+		{
+			drawPixelFast(	fx + off_x,
+								fy + off_y,
+								*bitmap_ptr++
+					);
+		}
+	}
+
+}
+
 
 
 #define SWAP(x,y) { (x)=(x)^(y); (y)=(x)^(y); (x)=(x)^(y); }

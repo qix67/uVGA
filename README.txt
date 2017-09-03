@@ -11,18 +11,23 @@ Wiring
 ------
 
 Hsync pin (default: 22) -> 82R resistor -> VGA 13		// depend on HSync FTM channel 
+
 Vsync pin (default: 29) -> 82R resistor -> VGA 14		// can be changed to any pin except pin of port D
 
-Teensy pin 5  (port D, bit 7) -> 2k2 resistor -> VGA pin 2 (green)
-Teensy pin 21 (port D, bit 6) -> 1k resistor -> VGA pin 2 (green)
-Teensy pin 20 (port D, bit 5) -> 470R resistor -> VGA pin 2 (green)
+   on teensy 3.2, default Vsync pin is pin 10.
 
-Teensy pin 6  (port D, bit 4) -> 2k2 resistor -> VGA pin 1 (red)
-Teensy pin 8  (port D, bit 3) -> 1k resistor -> VGA pin 1 (red)
-Teensy pin 7  (port D, bit 2) -> 470R resistor -> VGA pin 1(red)
 
-Teensy pin 14 (port D, bit 1) -> VGA pin 14 (VSync)
-Teensy pin 2  (port D, bit 0) -> VGA pin 13 (HSync)
+
+Teensy pin 5  (port D, bit 7) -> 470R resistor -> VGA pin 1 (red)
+Teensy pin 21 (port D, bit 6) -> 1k resistor -> VGA pin 1 (red)
+Teensy pin 20 (port D, bit 5) -> 2k2 resistor -> VGA pin 1 (red)
+
+Teensy pin 6  (port D, bit 4) -> 470R resistor -> VGA pin 2 (green)
+Teensy pin 8  (port D, bit 3) -> 1k resistor -> VGA pin 2 (green)
+Teensy pin 7  (port D, bit 2) -> 2k2 resistor -> VGA pin 2(green)
+
+Teensy pin 14 (port D, bit 1) -> 390R resistor ->VGA Pin 3 (blue)
+Teensy pin 2  (port D, bit 0) -> 820R resistor ->VGA Pin 3 (blue)
 
 Teensy pin GND -> VGA pins 5,6,7,8,10
 
@@ -85,6 +90,11 @@ uVGA(int dma_number = 0, int sram_u_dma_number = 1, int sram_u_dma_fix_number = 
     - (3,0) => pin 2
     - (3,4) => pin 35
     - (3,6) => pin 37
+
+  On teensy 3.2, valid pairs (not on port D) are:
+    - (0,0) => pin 22
+    - (0,2) => pin 9. This FTM can use pin 22 but you will have to configure it
+                      yourself.
 
   1 or 3 DMA will be used to generate video signal, the 4th one is (will be)
   used to accelerate some drawing functions. Currently, only 2 functions support
@@ -189,6 +199,16 @@ void uvga.copy(int s_x, int s_y, int d_x, int d_y, int w, int h);
   The function supports overlapping area and off-screen. If source area is
   fully off-screen, nothing occurs. If source area is partially off-screen,
   w and h will be automatically adjusted to fit fully in screen.
+
+
+void uvga.drawBitmap(int16_t x_pos, int16_t y_pos, uint8_t *bitmap, int16_t bitmap_width, int16_t bitmap_height);
+
+  Draw an out of screen bitmap (size: bitmap_width * bitmap_height pixels) on
+  screen at position (x_pos, y_pos).
+
+  The bitmap must have the same color mode as the modeline. The function will
+  automatically clip the bitmap if it should be copied partially out of 
+  frame buffer.
 
 
 void uvga.moveCursor(int column, int line);
