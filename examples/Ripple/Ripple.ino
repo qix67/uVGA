@@ -41,8 +41,8 @@ void loop()
 		for(Z = -15.02; Z < 15.0; Z += 0.01)
 		{
 			X = (x - ((float)fb_width) / 2.0 - 0.02) / 16.0;
-			R = sqrt(X * X + Z * Z);
-			Y = 150.0 * (1.0 + sin(R) / R); // sinc(x) == sin(x)/x
+			R = sqrtf(X * X + Z * Z);
+			Y = 150.0 * (1.0 + sinf(R) / R); // sinc(x) == sin(x)/x
 
 			y = 320.0 - (Z * 4.0) - Y;
 			if((y < my) && (y >= 0))
