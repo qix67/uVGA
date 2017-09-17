@@ -114,7 +114,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_single_repeat_1()
 }
 
 // ============================================================================
-// DMA configuration when only multiple DMA channels are used and repeat_line > 2
+// DMA configuration when only 1 DMA channel is used and repeat_line > 1
 uvga_error_t uVGA::rgb332_dma_init_dma_single_repeat_more_than_1()
 {
 	int t;
