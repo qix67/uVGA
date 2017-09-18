@@ -209,7 +209,27 @@ uVGA::uVGA(int dma_number, int sram_u_dma_number, int sram_u_dma_fix_number, int
 
 LED_INIT;
 LED_ON;
+	
 	// select pixel DMA to use
+	
+	if (dma_number==0 && sram_u_dma_number==0 && sram_u_dma_fix_number==0) {
+		//use Channelallocation from DMAChannel.h
+		dmachan1.begin(false);
+		dmachan2.begin(false);
+		dmachan3.begin(false);
+#ifdef DEBUG
+		Serial.print("uVGA allocated DMA Channels: ");
+		Serial.print(dmachan1.channel);
+		Serial.print(",");
+		Serial.print(dmachan2.channel);
+		Serial.print(",");
+		Serial.println(dmachan3.channel);
+#endif
+		dma_number = dmachan1.channel;		
+		sram_u_dma_number = dmachan2.channel;
+		sram_u_dma_fix_number = dmachan3.channel;		
+	}	
+	
 	if((dma_number < 0) || (dma_number > 15) || (dma_number == graphic_dma))		// DMAx cannot be the same as gfx dma
 		dma_number = 0;
 
