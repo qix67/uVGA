@@ -86,23 +86,23 @@ typedef enum uvga_text_direction
 typedef struct
 {
 	int pixel_clock;			// in Hz
-	int hres;					// horizontal resolution. Unlike all other modelines values and because VGA is an analog signal, the number of horizontal pixels can be freely defined
+	short hres;					// horizontal resolution. Unlike all other modelines values and because VGA is an analog signal, the number of horizontal pixels can be freely defined
 									// For example. @180MHz and UVGA_HSTRETCH_WIDE, in 800x600@56, the maximum number of pixel is 445.
 									// @144Mhz, in 640x480@56Hz, you can fit 724 pixels per line :)
-	int hsync_start;
-	int hsync_end;
-	int htotal;
+	short hsync_start;
+	short hsync_end;
+	short htotal;
 
-	int vres;					// vertical resolution
-	int vsync_start;
-	int vsync_end;
-	int vtotal;
+	short vres;					// vertical resolution
+	short vsync_start;
+	short vsync_end;
+	short vtotal;
 
 	uvga_signal_polarity_t h_polarity;
 	uvga_signal_polarity_t v_polarity;
 
 	uvga_color_mode_t img_color_mode;
-	int repeat_line;			// number of times to display each line of the frame buffer.
+	short repeat_line;			// number of times to display each line of the frame buffer.
 									// frame buffer height = vres / repeat_line;
 									// 1 means 640x480 (hres x vres) has a frame buffer of 640x480 pixels
 									// with 2, frame buffer is 640x240 pixels
@@ -111,7 +111,7 @@ typedef struct
 
 	// custom settings;
 	// image start position. Default: 1. Increase to move image to the right if first pixels are not visible
-	int horizontal_position_shift;
+	short horizontal_position_shift;
 
 	// increase width of pixels. This works by throttling DMA and inserting wait state. Default is no wait state. The other settings insert 4 and 8 wait states
 	uvga_pixel_hstretch pixel_h_stretch;
@@ -190,37 +190,37 @@ public:
 
 private:
 	// width and height of the image (comes from begin() call)
-	int img_w;
-	int img_h;
-	int img_frame_rate;
+	short img_w;
+	short img_h;
+	short img_frame_rate;
 	uvga_signal_polarity_t h_polarity;
 	uvga_signal_polarity_t v_polarity;
 	uvga_color_mode_t img_color_mode;
-	int complex_mode_ydiv;				// number of times a line from the frame buffer must be displayed consecutively on the screen (UVGA_RGB332_COMPLEX_YDIV only)
+	short complex_mode_ydiv;				// number of times a line from the frame buffer must be displayed consecutively on the screen (UVGA_RGB332_COMPLEX_YDIV only)
 
 	// width and height of the screen (include blanking time)
-	int scr_w;
-	int scr_h;
+	short scr_w;
+	short scr_h;
 
 	// shift start position of each line on the screen
-	int hpos_shift;
+	short hpos_shift;
 
 	// HSync position in pixel
-	int hsync_start_pix;
-	int hsync_end_pix;
+	short hsync_start_pix;
+	short hsync_end_pix;
 
 	// VSync position in pixel
-	int vsync_start_pix;
-	int vsync_end_pix;
+	short vsync_start_pix;
+	short vsync_end_pix;
 
 	// pixel clock = at least (PIT frequency / PIT overflow value)
 	int pxc_freq;			// frequency of the pixel clock
 	int pxc_base_freq;	// FTM base frequency
 
-	int dma_num;
-	int sram_u_dma_num;
-	int sram_u_dma_fix_num;
-	int gfx_dma_num;
+	short dma_num;
+	short sram_u_dma_num;
+	short sram_u_dma_fix_num;
+	short gfx_dma_num;
 	uvga_dma_settings dma_config_choice;
 
 	// hsync FTM settings
@@ -230,20 +230,20 @@ private:
 	int hftm_hsync_start;// FTM first channel duty => start of Hsync pulse
 	int hftm_hsync_end;	// FTM second channel duty => end of Hsync pulse
 
-	int hsync_ftm;			// FTM to use to generate Hsync
-	int hsync_ftm_channel;	// FTM channel to use on hsync_ftm. MUST BE EVEN. due to combine mode, this channel and the next will be used
+	short hsync_ftm;			// FTM to use to generate Hsync
+	short hsync_ftm_channel;	// FTM channel to use on hsync_ftm. MUST BE EVEN. due to combine mode, this channel and the next will be used
 								// the digital pin associated to this channel will output VGA hsync signal
 
-	int hsync_pin;			// pin sending Hsync signal
+	short hsync_pin;			// pin sending Hsync signal
 
-	int x1_ftm_channel;	// FTM channel to use on hsync_ftm to general horizontal visible signal (used to mitigate PIT trigger on DMA)
+	short x1_ftm_channel;	// FTM channel to use on hsync_ftm to general horizontal visible signal (used to mitigate PIT trigger on DMA)
 
-	int x1_pin;
+	short x1_pin;
 
 	FTM_REGS_t *hftm;
 	
 	// vsync settings
-	int vsync_pin;			// pin sending Vsync signal
+	short vsync_pin;			// pin sending Vsync signal
 	uint32_t vsync_bitmask;	// bit mask to use in GPIOx_P[SC]OR to set vsync signal
 	volatile uint32_t *vsync_gpio_no_sync_level;	// these 2 pointers are address of GPIOx_PSOR and GPIOx_PCOR
 	volatile uint32_t *vsync_gpio_sync_level;		// there ordre depends on the polarity of the vsync signal
@@ -272,16 +272,16 @@ private:
 	int dma_sync_tcd_address;					// address of the TCD containing the start of sync. It is only used by waitSync()
 
 	// stretch pixel horizontaly using DMA bandwidth control
-	int px_dma_bwc;
+	short px_dma_bwc;
 
 	// DMA used to copy frame buffer line in SRAM_U to SRAM_L
 	bool sram_u_dma_required;
-	int first_line_in_sram_u;
+	short first_line_in_sram_u;
 	volatile DMABaseClass::TCD_t *sram_u_dma;				// address of DMA channel registers
 	volatile uint8_t *sram_u_dmamux;				// address of DMA channel multiplexer
 	volatile uint8_t *sram_u_dmaprio;				// address of DMA channel priority
 
-	int sram_u_dma_nb_major_loop;					// number of minor loops in the major loop
+	short sram_u_dma_nb_major_loop;					// number of minor loops in the major loop
 	DMABaseClass::TCD_t *sram_u_dma_major_loop;// array of DMA transfer (minor loop) to process to build screen. array MUST BE 32 bytes aligned (eDMA requirement)
 
 	DMABaseClass::TCD_t *sram_u_dma_fix;				// address of DMA channel registers
@@ -310,9 +310,9 @@ private:
 															// most of the time, these 3 address are identical
 															// however, they can be diffrent if frame buffer must be align on an address (DMA requirement) or if DMA uses a buffer containing video synchro
 															// 
-	int fb_row_stride;								// number of bytes per line of frame buffer
-	int fb_width;
-	int fb_height;
+	short fb_row_stride;								// number of bytes per line of frame buffer
+	short fb_width;
+	short fb_height;
 
 	uint8_t **fb_row_pointer;					// pointer on start of each line of the frame buffer
 														// array contains fb_height_entries pointing on first pixel off each line
@@ -326,14 +326,14 @@ private:
 	uint8_t background_color;
 	bool transparent_background;
 
-	int cursor_x;			// cursor x position in print window in CHARACTER
-	int cursor_y;			// cursor y position in print window in CHARACTER
-	int font_width;
-	int font_height;
-	int print_window_x;	// x position in pixel of text window 
-	int print_window_y;	// y position in pixel of text window
-	int print_window_w;	// text window width in CHARACTER
-	int print_window_h;	// text window height in CHARACTER
+	short cursor_x;			// cursor x position in print window in CHARACTER
+	short cursor_y;			// cursor y position in print window in CHARACTER
+	short font_width;
+	short font_height;
+	short print_window_x;	// x position in pixel of text window 
+	short print_window_y;	// y position in pixel of text window
+	short print_window_w;	// text window width in CHARACTER
+	short print_window_h;	// text window height in CHARACTER
 
 	void clocks_init();
 	void signal_pins_init();
