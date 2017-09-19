@@ -136,6 +136,7 @@ public:
 	//          VSYNC on pin 29 (teensy 3.5, 3.6), 10 (teensy 3.2)
 	//          gfx_dma = last dma channel available
 	// =========================================================
+	DMAChannel dmachan1, dmachan2, dmachan3;	
 	uVGA(int dma_number = 0, int sram_u_dma_number = 0, int sram_u_dma_fix_number = 0, int hsync_ftm_num = 0, int hsync_ftm_channel_num = 0, int x1_ftm_channel_num = 7,int vsync_pin = DEFAULT_VSYNC_PIN, int graphic_dma = DMA_NUM_CHANNELS - 1);
 
 	// display VGA image
