@@ -34,7 +34,7 @@ void loop()
 	int fb_width, fb_height;
 	int max = 256;
 	int row, col;
-	double c_re, c_im, x, y, x_new;
+	float c_re, c_im, x, y, x_new;
 	int iteration;
 
 	uvga.get_frame_buffer_size(&fb_width, &fb_height);

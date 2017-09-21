@@ -27,7 +27,7 @@ void setup()
 	}
 }
 
-double a=0;
+float a=0;
 
 void loop()
 {	
@@ -82,7 +82,7 @@ void loop()
 	uvga.drawText("uVGA Library",x0,y0,random(256),random(256),dir[r]);
 	//delay(10);
 	
-	uvga.scroll(0,0,fb_width,fb_height,8*sin(a),8*cos(a), random(256) - 1);
+	uvga.scroll(0,0,fb_width,fb_height,8*sinf(a),8*cosf(a), random(256) - 1);
 	a+=0.05;
 	//delay(1000/60);
 }

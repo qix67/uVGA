@@ -137,8 +137,8 @@ void loop()
 			int modu = (step + i) % 25;
 			int integ = (step + i) / 25;
 
-			x = cw * sin((xang[modu] + (i + integ) * (25 * 1.17)) * deg2rad * 0.75);
-			y = ch * cos((yang[modu] + (i + integ) * (25 * 1.39)) * deg2rad * 0.67);
+			x = cw * sinf((xang[modu] + (i + integ) * (25 * 1.17)) * deg2rad * 0.75);
+			y = ch * cosf((yang[modu] + (i + integ) * (25 * 1.39)) * deg2rad * 0.67);
 			uvga.drawBitmap(x + cx - 8 , y + cy - 8, sphere[max_color], 8, 8);
 		}
 
