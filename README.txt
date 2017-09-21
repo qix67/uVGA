@@ -4,8 +4,9 @@ by Eric PREVOTEAU
 1) Quick start
 ==============
 
-Place this folder in your libraries directory
-Start or restart the Arduino IDE
+Import zip file using Arduino IDE library manager
+or
+place this folder in your libraries directory and start or restart the Arduino IDE
 
 Wiring
 ------
@@ -69,13 +70,16 @@ color format is RGB332 (RRRGGGBB)
 ======
 
 class instantiation
-uVGA(int dma_number = 0, int sram_u_dma_number = 1, int sram_u_dma_fix_number = 2, int hsync_ftm_num = 0, int hsync_ftm_channel_num = 0, int x1_ftm_channel_num = 7,int vsync_pin = 29, int graphic_dma = DMA_NUM_CHANNELS - 1)
+uVGA(int dma_number = 0, int sram_u_dma_number = 0, int sram_u_dma_fix_number = 0, int hsync_ftm_num = 0, int hsync_ftm_channel_num = 0, int x1_ftm_channel_num = 7,int vsync_pin = 29, int graphic_dma = DMA_NUM_CHANNELS - 1)
 
   Initialize class internal parameters.
   Class requirements:
-    - 4 DMA channels (0-15), can be any
+    - 4 DMA channels (0-15), can be any.
     - 1 FTM with 3 channels (on teensy 3.6, only FTM0 and FTM3 are possible).
       All others channels will be free.
+
+  If the first 3 parameters (DMA channels) are set to 0, DMA channel will be
+  allocated using DMAChannel library.
 
   On the chosen FTM, the class will use channels hsync_ftm_channel_num,
   hsync_ftm_channel_num+1 and x1_ftm_channel_num.
@@ -108,7 +112,7 @@ uVGA(int dma_number = 0, int sram_u_dma_number = 1, int sram_u_dma_fix_number = 
 
 uvga_error_t  uvga.begin(uVGAmodeline *modeline)
 
-  Initializes the display
+  Initialize the display
   Returns: 0 on success, uvga_error_t code on failure
   Not all resolutions work on all monitors.
 
@@ -117,7 +121,7 @@ uvga_error_t  uvga.begin(uVGAmodeline *modeline)
 
 void uvga.end();
 
-  Stops the display. NOT TESTED
+  Stop the display. NOT TESTED
 
 
 void uvga.clear(int col=0);
@@ -127,52 +131,52 @@ void uvga.clear(int col=0);
 
 void get_frame_buffer_size(int *width, int *height);
 
-  Retrieves the width and the height of the frame buffer.
+  Retrieve the width and the height of the frame buffer.
   Width and height of the frame buffer are computed from modeline settings.
 
 
 int getPixel(int x, int y)
 
-  Returns the color of the pixel at (x,y)
+  Return the color of the pixel at (x,y)
 
 
 void uvga.drawPixel(int x, int y, int col);
 
-  Draws pixel at (x,y) in colour col
+  Draw pixel at (x,y) in colour col
 
 
 void uvga.drawLine(int x0, int y0, int x1, int y1, int col);
 
-  Draws line from (x0,y0) to (x1,y1) in colour col
+  Draw line from (x0,y0) to (x1,y1) in colour col
 
 
 void uvga.drawTri(int x0,int y0,int x1,int y1,int x2,int y2,int col);
 void uvga.fillTri(int x0,int y0,int x1,int y1,int x2,int y2,int col);
 
-  Draws or fills triangle (x0,y0),(x1,y1),(x2,y2) in colour col
+  Draw or fill triangle (x0,y0),(x1,y1),(x2,y2) in colour col
 
 
 void uvga.drawRect(int x0, int y0, int x1, int y1, int col);
 void uvga.fillRect(int x0, int y0, int x1, int y1, int col);
 
-  Draws or fills rectangle with corners (x0,y0),(x1,y1) in colour col
+  Draw or fill rectangle with corners (x0,y0),(x1,y1) in colour col
 
 
 void uvga.drawCircle(int x, int y, int r, int col);
 void uvga.fillCircle(int x, int y, int r, int col);
 
-  Draws or fills circle center (x,y) radius r in colour col
+  Draw or fill circle center (x,y) radius r in colour col
 
 
 void uvga.drawEllipse(int x0, int y0, int x1, int y1, int col);
 void uvga.fillEllipse(int x0, int y0, int x1, int y1, int col);
 
-  Draws or fills ellipse bounded by rectangle (x0,y0),(x1,y1) in colour col
+  Draw or fill ellipse bounded by rectangle (x0,y0),(x1,y1) in colour col
 
 
 void uvga.drawText(const char *text, int x, int y, int fgcol, int bgcol= -1, uvga_text_direction dir = UVGA_DIR_RIGHT);
 
-  Draws text at any pixel position. 
+  Draw text at any pixel position. 
   (x,y) is the top-left corner of the text before rotation.
   fgcol is the colour of the text. bgcol is the colour of the text background
   or -1 for a transparent background.
@@ -185,7 +189,7 @@ void uvga.drawText(const char *text, int x, int y, int fgcol, int bgcol= -1, uvg
 
 void uvga.scroll(int x, int y, int w, int h, int dx, int dy,int col=0);
 
-  Scrolls an area of the screen, top left corner (x,y), width w, height h
+  Scroll an area of the screen, top left corner (x,y), width w, height h
   by (dx,dy) pixels. If dx>0 scrolling is right, dx<0 is left. dy>0 is down,
   dy<0 is up. Empty area is filled with color col (only in horizontal (dy=0)
   and vertical scroll (dx=0))
@@ -213,38 +217,38 @@ void uvga.drawBitmap(int16_t x_pos, int16_t y_pos, uint8_t *bitmap, int16_t bitm
 
 void uvga.moveCursor(int column, int line);
 
-  Moves the print position to (column, line)  
+  Move the print position to (column, line)  
 
 
 void uvga.setPrintWindow(int x, int y, int width, int height);
 
-  Restricts the printing window to an area of width x height characters, at a 
+  Restrict the printing window to an area of width x height characters, at a 
   position (x,y) (in pixel).
 
 
 void uvga.unsetPrintWindow()
 
-  Restores the print window to be the whole screen.
+  Restore the print window to be the whole screen.
 
 
 void uvga.clearPrintWindow();
 
-  Clears the print window to the current text paper colour.
+  Clear the print window to the current text background colour.
 
 
 void uvga.scrollPrintWindow();
 
-  Scrolls the print window up one line and moves the print position to the bottom.
+  Scroll the print window up one line and moves the print position to the bottom.
 
 
 void uvga.setForegroundColor(uint8_t fg_color);
 
-  Sets the text colour to fg_color (RGB332).
+  Set the text colour to fg_color (RGB332).
 
 
 void uvga.setBackgroundColor(int bg_color);
 
-  Sets the text background colour to bg_color (RGB332) or -1 for transparent background
+  Set the text background colour to bg_color (RGB332) or -1 for transparent background
 
 
 virtual size_t uvga.write(const uint8_t *buffer, size_t size);
