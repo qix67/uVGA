@@ -142,7 +142,7 @@ inline void uVGA::drawHLineFast(int y, int x1, int x2, int color)
 
 	if(nb)
 	{
-		uint32_t c = color;
+		uint32_t c = color & 0xFF;
 		c = c | (c << 8);
 		c = c | (c << 16);
 
