@@ -405,7 +405,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_2()
 	cur_tcd++;
 
 	// copy line V and V + 1
-	for(t = 0; t < (v - 1) ; t++)
+	for(t = 0; t < v ; t++)
 	{
 		// line TCD configuration. each byte of the write buffer is written as a 32 bits value inside GPIO port D
 		cur_tcd->SADDR = dma_row_pointer[2 * t];	// source is line 't' of frame buffer or DMA indirection. DMA row pointer is also duplicated thus multiplication by 2
