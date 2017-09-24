@@ -138,6 +138,12 @@ public:
 	// =========================================================
 	uVGA(int dma_number = 0, int sram_u_dma_number = 0, int sram_u_dma_fix_number = 0, int hsync_ftm_num = 0, int hsync_ftm_channel_num = 0, int x1_ftm_channel_num = 7,int vsync_pin = DEFAULT_VSYNC_PIN, int graphic_dma = DMA_NUM_CHANNELS - 1);
 
+	// disable frame buffer auto allocation using a static/pre-allocated one
+	// the frame buffer should be declared as:
+	// DMAMEM uint8_t my_frame_buffer[UVGA_FB_SIZE(image_width, image_height, repeat_line_factor)];
+	// or using 
+	void set_static_framebuffer(uint8_t *frame_buffer);
+
 	// display VGA image
 	uvga_error_t begin(uVGAmodeline *modeline = NULL);
 	void end();
@@ -393,6 +399,15 @@ extern uVGA uvga;
 extern unsigned char _vga_font8x8[];
 
 // various macros to compute frame buffer size and line position inside it
+// image_width is the number of pixels per line
+// image_height is the number of lines per image (on screen), assuming a repeat line factor = 1
+// repeat_line_factor is the number of times each line is printed
+// Ex for UVGA_240M_703X300
+// image_width = 703
+// image_height = 600
+// repeat_line_factor = 2
+
+// All predefined video modes set 3 defines containing these values: UVGA_HREZ, UVGA_VREZ, UVGA_RPTL
 
 // size of line in frame buffer  (in bytes)
 #define UVGA_FB_ROW_STRIDE(image_width)     						(((image_width) + 1 + 15) & 0xFFF0)
@@ -411,6 +426,9 @@ extern unsigned char _vga_font8x8[];
 
 // address of line in frame buffer (0 <= y < fb_height)
 #define UVGA_LINE_ADDRESS(allocated_frame_buffer, fb_row_stride, y)     (UVGA_FB_START(allocated_frame_buffer, fb_row_stride) + (y) * (fb_row_stride))
+
+#define UVGA_STATIC_FRAME_BUFFER(fb_name)		DMAMEM uint8_t (fb_name)[UVGA_FB_SIZE(UVGA_HREZ, UVGA_VREZ, UVGA_RPTL)]
+
 #endif
 
 

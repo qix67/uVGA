@@ -35,8 +35,8 @@ Teensy pin GND -> VGA pins 5,6,7,8,10
 for more accurate colors, replace 2k2 by 2k and 470R by 510R
 
 
-2) Basic usage
-==============
+2a) Basic usage
+===============
 
 #include <uVGA.h>
 
@@ -59,6 +59,31 @@ Then call any drawing or text functions.
 
 For text, use uvga.print(...) and uvga.println(...) just like Serial.print(...)
 and Serial.println(...)
+
+
+2b) Basic usage with preallocated frame buffer
+==============================================
+
+#include <uVGA.h>
+
+uVGA uvga;
+
+#define UVGA_DEFAULT_REZ
+#include <uVGA_valid_settings.h>
+
+UVGA_STATIC_FRAME_BUFFER(uvga_fb);
+
+void setup()
+{
+	uvga.set_static_framebuffer(uvga_fb);
+	uvga.begin(&modeline);
+}
+
+
+UVGA_STATIC_FRAME_BUFFER macro creates a frame buffer named 'uvga_fb', stored in
+DMAMEM area and uses UVGA_HREZ, UVGA_VREZ, UVGA_RPTL #define created in
+uVGA_valid_settings.h
+
 
 3) Colours
 ==========
@@ -110,7 +135,18 @@ uVGA(int dma_number = 0, int sram_u_dma_number = 0, int sram_u_dma_fix_number = 
   If any parameter is invalid, the library will fallback to its default value.
 
 
-uvga_error_t  uvga.begin(uVGAmodeline *modeline)
+void uvga.set_static_framebuffer(uint8_t *static_frame_buffer)
+
+  Force library to use a dedicated frame buffer instead of letting it allocates
+  the frame buffer itself.
+
+  If used, this function MUST be called before uvga.begin call.
+
+  Frame buffer can be easily created using a macro one line:
+   UVGA_STATIC_FRAME_BUFFER(your_frame_buffer_name_here);
+
+
+uvga_error_t uvga.begin(uVGAmodeline *modeline)
 
   Initialize the display
   Returns: 0 on success, uvga_error_t code on failure

@@ -301,6 +301,15 @@ LED_ON;
 	vsync_pin = vsync_pin_num;
 
 	x1_pin = FTM_channel_to_gpio_pin[hsync_ftm][x1_ftm_channel];
+
+	all_allocated_rows = NULL;
+}
+
+// ============================================================================
+// disable frame buffer auto allocation using a static/pre-allocated one
+void uVGA::set_static_framebuffer(uint8_t *frame_buffer)
+{
+	all_allocated_rows = frame_buffer;
 }
 
 // ============================================================================
@@ -496,10 +505,13 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 								fb_height = UVGA_FB_HEIGHT(img_h, complex_mode_ydiv);
 
 								// allocate all frame buffer rows + sram_l buffer as a single area, sram_l buffer at the beginning
-								//all_allocated_rows = (uint8_t*) malloc(fb_row_stride * (fb_height + 1) + 15);
-								all_allocated_rows = (uint8_t*) malloc(UVGA_FB_SIZE(fb_width, img_h, complex_mode_ydiv));
 								if(all_allocated_rows == NULL)
-									return UVGA_FAIL_TO_ALLOCATE_FRAME_BUFFER;
+								{
+									//all_allocated_rows = (uint8_t*) malloc(fb_row_stride * (fb_height + 1) + 15);
+									all_allocated_rows = (uint8_t*) malloc(UVGA_FB_SIZE(fb_width, img_h, complex_mode_ydiv));
+									if(all_allocated_rows == NULL)
+										return UVGA_FAIL_TO_ALLOCATE_FRAME_BUFFER;
+								}
 
 								// round lines address to multiple of 16 bytes due to DMA burst constraint
 								//all_allocated_rows_aligned = (uint8_t *)(((int)all_allocated_rows + 15) & ~0xF);
