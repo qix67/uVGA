@@ -392,5 +392,25 @@ private:
 extern uVGA uvga;
 extern unsigned char _vga_font8x8[];
 
+// various macros to compute frame buffer size and line position inside it
+
+// size of line in frame buffer  (in bytes)
+#define UVGA_FB_ROW_STRIDE(image_width)     						(((image_width) + 1 + 15) & 0xFFF0)
+
+// height of the frame buffer
+#define UVGA_FB_HEIGHT(image_height, repeat_line_factor)		(((image_height) + (repeat_line_factor) - 1) / (repeat_line_factor))
+
+// size of the frame buffer in byte, including SRAM_L buffer
+#define UVGA_FB_SIZE(image_width, image_height, repeat_line_factor)    	((UVGA_FB_ROW_STRIDE(image_width) * (UVGA_FB_HEIGHT(image_height, repeat_line_factor) + 1) + 15))
+
+// address of first byte used in preallocated buffer, it is also the address of SRAM_L buffer
+#define UVGA_BUFFER_START(allocated_frame_buffer)				((uint8_t *)(((int)(allocated_frame_buffer) + 15) & ~0xF))
+
+// address of first byte of the frame buffer inside preallocated buffer
+#define UVGA_FB_START(allocated_frame_buffer, fb_row_stride)	((allocated_frame_buffer) + (fb_row_stride))
+
+// address of line in frame buffer (0 <= y < fb_height)
+#define UVGA_LINE_ADDRESS(allocated_frame_buffer, fb_row_stride, y)     (UVGA_FB_START(allocated_frame_buffer, fb_row_stride) + (y) * (fb_row_stride))
 #endif
+
 

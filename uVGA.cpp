@@ -490,16 +490,20 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 	{
 		case UVGA_RGB332:
 								// RGB 3:3:2 complex mode with possible line repeat
-								fb_row_stride = (fb_width + 1 + 15) & 0xFFF0;	// +1 to include a black pixel. then the result is rounded to the next multiple of 16 due to dma constraint
-								fb_height = (img_h + complex_mode_ydiv - 1) / complex_mode_ydiv;
+								//fb_row_stride = (fb_width + 1 + 15) & 0xFFF0;	// +1 to include a black pixel. then the result is rounded to the next multiple of 16 due to dma constraint
+								fb_row_stride = UVGA_FB_ROW_STRIDE(fb_width);	// +1 to include a black pixel. then the result is rounded to the next multiple of 16 due to dma constraint
+								//fb_height = (img_h + complex_mode_ydiv - 1) / complex_mode_ydiv;
+								fb_height = UVGA_FB_HEIGHT(img_h, complex_mode_ydiv);
 
 								// allocate all frame buffer rows + sram_l buffer as a single area, sram_l buffer at the beginning
-								all_allocated_rows = (uint8_t*) malloc(fb_row_stride * (fb_height + 1) + 15);
+								//all_allocated_rows = (uint8_t*) malloc(fb_row_stride * (fb_height + 1) + 15);
+								all_allocated_rows = (uint8_t*) malloc(UVGA_FB_SIZE(fb_width, img_h, complex_mode_ydiv));
 								if(all_allocated_rows == NULL)
 									return UVGA_FAIL_TO_ALLOCATE_FRAME_BUFFER;
 
 								// round lines address to multiple of 16 bytes due to DMA burst constraint
-								all_allocated_rows_aligned = (uint8_t *)(((int)all_allocated_rows + 15) & ~0xF);
+								//all_allocated_rows_aligned = (uint8_t *)(((int)all_allocated_rows + 15) & ~0xF);
+								all_allocated_rows_aligned = UVGA_BUFFER_START(all_allocated_rows);
 								memset(all_allocated_rows_aligned, 0, fb_row_stride * (fb_height + 1));
 
 								// allocate a 2 lines buffer in SRAM_L must be 16 bytes aligned due to DMA burst copy
@@ -509,7 +513,8 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 									return UVGA_FAIL_TO_ALLOCATE_SRAM_L_BUFFER_IN_SRAM_L;
 
 								// frame buffer has a reduced size
-								frame_buffer = all_allocated_rows_aligned + fb_row_stride;
+								//frame_buffer = all_allocated_rows_aligned + fb_row_stride;
+								frame_buffer = UVGA_FB_START(all_allocated_rows_aligned, fb_row_stride);
 
 								if(((int)frame_buffer) >= SRAM_U_START_ADDRESS)
 									return UVGA_FRAME_BUFFER_FIRST_LINE_NOT_IN_SRAM_L;
@@ -989,7 +994,7 @@ uvga_error_t uVGA::dma_init()
 	// slave 3 = GPIO
 	// when only the CPU requests access, this has nearly no effects
 	// Kinetis Reference manual says 6 is the highest priority but AXBS_PRSn register description says 0 is the highest
-	// I assumed 6 is correct but wathever I chose, I see no difference during my test
+	// I assumed 6 is correct but whatever I chose, I see no difference during my test
 #if defined(__MK64FX512__) || defined(__MK66FX1M0__)
 	AXBS_PRS1 = 0x05432610;	//0x06543021;
 	AXBS_PRS3 = 0x05432610;	//0x06543021;
