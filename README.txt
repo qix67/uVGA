@@ -115,10 +115,11 @@ uVGA(int dma_number = 0, int sram_u_dma_number = 0, int sram_u_dma_fix_number = 
   Hsync signal. Look at teensyduino's teensy3/core_pins.h file, CORE_FTM*_CH*_PIN
   On teensy 3.6, valid pairs (not on port D) are:
     - (0,0) => pin 22
-    - (0,2) => pin 9
-    - (3,0) => pin 2
+    - (0,2) => pin 9. This FTM can use pin 13 but you will have to configure it
+                      yourself and problem may occur due to LED on this pin.
     - (3,4) => pin 35
-    - (3,6) => pin 37
+    - (3,6) => pin 37. This FTM can use pin 57 but you will have to configure it
+                       yourself.
 
   On teensy 3.2, valid pairs (not on port D) are:
     - (0,0) => pin 22
