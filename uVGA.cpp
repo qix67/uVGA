@@ -447,6 +447,9 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 	vsync_start_pix = modeline->vsync_start;
 	vsync_end_pix = modeline->vsync_end;
 
+	v_top_margin = modeline->top_margin;
+	v_bottom_margin = modeline->bottom_margin;
+
 	pxc_freq = modeline->pixel_clock;
 
 	// FTM uses a fixed frequency
@@ -502,13 +505,13 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 								//fb_row_stride = (fb_width + 1 + 15) & 0xFFF0;	// +1 to include a black pixel. then the result is rounded to the next multiple of 16 due to dma constraint
 								fb_row_stride = UVGA_FB_ROW_STRIDE(fb_width);	// +1 to include a black pixel. then the result is rounded to the next multiple of 16 due to dma constraint
 								//fb_height = (img_h + complex_mode_ydiv - 1) / complex_mode_ydiv;
-								fb_height = UVGA_FB_HEIGHT(img_h, complex_mode_ydiv);
+								fb_height = UVGA_FB_HEIGHT(img_h, complex_mode_ydiv, v_top_margin, v_bottom_margin);
 
 								// allocate all frame buffer rows + sram_l buffer as a single area, sram_l buffer at the beginning
 								if(all_allocated_rows == NULL)
 								{
 									//all_allocated_rows = (uint8_t*) malloc(fb_row_stride * (fb_height + 1) + 15);
-									all_allocated_rows = (uint8_t*) malloc(UVGA_FB_SIZE(fb_width, img_h, complex_mode_ydiv));
+									all_allocated_rows = (uint8_t*) malloc(UVGA_FB_SIZE(fb_width, img_h, complex_mode_ydiv, v_top_margin, v_bottom_margin));
 									if(all_allocated_rows == NULL)
 										return UVGA_FAIL_TO_ALLOCATE_FRAME_BUFFER;
 								}
@@ -531,8 +534,10 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 								if(((int)frame_buffer) >= SRAM_U_START_ADDRESS)
 									return UVGA_FRAME_BUFFER_FIRST_LINE_NOT_IN_SRAM_L;
 
+								img_h_no_margin = img_h - v_top_margin - v_bottom_margin;
+
 								// but not the frame buffer row pointer because it is used to display line
-								fb_row_pointer = (uint8_t **) malloc(sizeof(uint8_t *) * img_h);
+								fb_row_pointer = (uint8_t **) malloc(sizeof(uint8_t *) * img_h_no_margin);
 								if(fb_row_pointer == NULL)
 									return UVGA_FAIL_TO_ALLOCATE_ROW_POINTER_ARRAY;
 
@@ -541,7 +546,7 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 								switch(dma_config_choice)
 								{
 									case UVGA_DMA_AUTO:
-																for(y = 0; y < img_h; y++)
+																for(y = 0; y < img_h_no_margin; y++)
 																{
 																	// prevent compiler to convert
 																	//   floor(y / complex_mode_ydiv) * fb_row_stride
@@ -563,7 +568,7 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 																break;
 
 									case UVGA_DMA_SINGLE:
-																for(y = 0; y < img_h; y++)
+																for(y = 0; y < img_h_no_margin; y++)
 																{
 																	// prevent compiler to convert
 																	//   floor(y / complex_mode_ydiv) * fb_row_stride
@@ -579,14 +584,14 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 								// if frame buffer lines are in SRAM_U, allocate a DMA redirection array
 								if(sram_u_dma_required == true)
 								{
-									dma_row_pointer = (uint8_t **) malloc(sizeof(uint8_t *) * (img_h + complex_mode_ydiv));
+									dma_row_pointer = (uint8_t **) malloc(sizeof(uint8_t *) * (img_h_no_margin + complex_mode_ydiv));
 
 									if(dma_row_pointer == NULL)
 										return UVGA_FAIL_TO_ALLOCATE_DMA_ROW_POINTER_ARRAY;
 
 									// row pointer of the line after the last line is the row pointer of the first line
 									// (required to optimize TCD of the 3rd channel, instead of 1 per sram_l_dma_address change, only 1 globally)
-									for(y = 0; y < img_h; y++)
+									for(y = 0; y < img_h_no_margin; y++)
 									{
 										dma_row_pointer[y] = fb_row_pointer[y];
 
@@ -606,7 +611,7 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 										}
 									}
 
-									while(y < (img_h + complex_mode_ydiv))
+									while(y < (img_h_no_margin + complex_mode_ydiv))
 									{
 										dma_row_pointer[y++] = dma_row_pointer[0];
 									}
@@ -616,7 +621,7 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 									sram_u_dma_required = false;
 									dma_row_pointer = NULL;
 
-									for(y = 0; y < img_h; y++)
+									for(y = 0; y < img_h_no_margin; y++)
 									{
 										DPRINT(y);
 										DPRINT(":");
@@ -894,7 +899,7 @@ DMABaseClass::TCD_t *uVGA::dma_append_vsync_tcds(DMABaseClass::TCD_t *cur_tcd)
 
 	// Vblanking TCD configuration
 	// after frame buffer and before sync
-	if((vsync_start_pix - img_h) > 0)
+	if((vsync_start_pix - img_h + v_bottom_margin) > 0)
 	{
 		cur_tcd->SADDR = &vsync_bitmask;	// source is the bitmask of the pin driving vsync signal
 		cur_tcd->SOFF = 0;					// never change source adress, the pixel does not move :)
@@ -905,7 +910,7 @@ DMABaseClass::TCD_t *uVGA::dma_append_vsync_tcds(DMABaseClass::TCD_t *cur_tcd)
 		cur_tcd->DADDR = vsync_gpio_no_sync_level;		// destination is vsync port register
 		cur_tcd->DOFF = 0;					// never change write destination, the register does not move :)
 		cur_tcd->ATTR_DST = DMA_TCD_ATTR_DSIZE(DMA_TCD_ATTR_SIZE_32BIT);				// write data size = 8 bits
-		cur_tcd->CITER = vsync_start_pix - img_h;			// repeat from end of framebuffer to start of vsync
+		cur_tcd->CITER = vsync_start_pix - img_h + v_bottom_margin;			// repeat from end of framebuffer to start of vsync
 		cur_tcd->DLASTSGA = (int32_t)(cur_tcd+1);	// scatter/gather mode enabled. At end of major loop of this TCD, switch to the next TCD
 		cur_tcd->CSR = DMA_TCD_CSR_ESG;	// enable scatter/gather mode (add  "| DMA_TCD_CSR_INTMAJOR" have a vsync interrupt before image and after blanking time)
 		cur_tcd->BITER = cur_tcd->CITER;
@@ -938,7 +943,7 @@ DMABaseClass::TCD_t *uVGA::dma_append_vsync_tcds(DMABaseClass::TCD_t *cur_tcd)
 	cur_tcd->DADDR = vsync_gpio_no_sync_level;		// destination is vsync port register
 	cur_tcd->DOFF = 0;					// never change write destination, the register does not move :)
 	cur_tcd->ATTR_DST = DMA_TCD_ATTR_DSIZE(DMA_TCD_ATTR_SIZE_32BIT);				// write data size = 8 bits
-	cur_tcd->CITER = scr_h - vsync_end_pix;			// repeat from end of sync to end of screen
+	cur_tcd->CITER = scr_h - vsync_end_pix + v_top_margin;			// repeat from end of sync to end of screen
 	cur_tcd->DLASTSGA = (uint32_t)px_dma_major_loop;	// scatter/gather mode enabled. At end of major loop of this TCD, switch to the next TCD... the first one
 	cur_tcd->CSR = DMA_TCD_CSR_ESG;	// enable scatter/gather mode (add  "| DMA_TCD_CSR_INTMAJOR" have a vsync interrupt before image and after blanking time)
 	cur_tcd->BITER = cur_tcd->CITER;

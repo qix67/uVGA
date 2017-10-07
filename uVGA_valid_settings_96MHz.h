@@ -53,6 +53,9 @@ extern "C"
 #define UVGA_HREZ 340
 #define UVGA_VREZ 480
 #define UVGA_RPTL 2
+#define UVGA_TOP_MARGIN 0
+#define UVGA_BOTTOM_MARGIN 0
+
 uVGAmodeline modeline = {
    .pixel_clock = 25180000, //25.18Mhz
    .hres = UVGA_HREZ,
@@ -63,6 +66,8 @@ uVGAmodeline modeline = {
    .vsync_start = 490,
    .vsync_end = 492,
    .vtotal = 525,
+	.top_margin = UVGA_TOP_MARGIN,
+	.bottom_margin = UVGA_BOTTOM_MARGIN,
    .h_polarity = UVGA_NEGATIVE_POLARITY,
    .v_polarity = UVGA_NEGATIVE_POLARITY,
    .img_color_mode = UVGA_RGB332,
@@ -80,6 +85,9 @@ uVGAmodeline modeline = {
 #define UVGA_HREZ 804
 #define UVGA_VREZ 480
 #define UVGA_RPTL 2
+#define UVGA_TOP_MARGIN 0
+#define UVGA_BOTTOM_MARGIN 0
+
 uVGAmodeline modeline = {
    .pixel_clock = 25180000, //25.18Mhz
    .hres = UVGA_HREZ,
@@ -90,6 +98,8 @@ uVGAmodeline modeline = {
    .vsync_start = 490,
    .vsync_end = 492,
    .vtotal = 525,
+	.top_margin = UVGA_TOP_MARGIN,
+	.bottom_margin = UVGA_BOTTOM_MARGIN,
    .h_polarity = UVGA_NEGATIVE_POLARITY,
    .v_polarity = UVGA_NEGATIVE_POLARITY,
    .img_color_mode = UVGA_RGB332,
@@ -107,6 +117,9 @@ uVGAmodeline modeline = {
 #define UVGA_HREZ 222
 #define UVGA_VREZ 480
 #define UVGA_RPTL 4
+#define UVGA_TOP_MARGIN 0
+#define UVGA_BOTTOM_MARGIN 0
+
 uVGAmodeline modeline = {
    .pixel_clock = 25180000, //25.18Mhz
    .hres = UVGA_HREZ,
@@ -117,6 +130,8 @@ uVGAmodeline modeline = {
    .vsync_start = 490,
    .vsync_end = 492,
    .vtotal = 525,
+	.top_margin = UVGA_TOP_MARGIN,
+	.bottom_margin = UVGA_BOTTOM_MARGIN,
    .h_polarity = UVGA_NEGATIVE_POLARITY,
    .v_polarity = UVGA_NEGATIVE_POLARITY,
    .img_color_mode = UVGA_RGB332,

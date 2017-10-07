@@ -98,6 +98,10 @@ typedef struct
 	short vsync_end;
 	short vtotal;
 
+	short top_margin;			// number of empty lines at top of the screen
+	short bottom_margin;		// number of empty lines at bottom of the screen
+									// Note: repeat_line factor is not applied on screen but on screen minus margin
+
 	uvga_signal_polarity_t h_polarity;
 	uvga_signal_polarity_t v_polarity;
 
@@ -201,7 +205,8 @@ private:
 
 	// width and height of the image (comes from begin() call)
 	short img_w;
-	short img_h;
+	short img_h;				// height of screen including top and bottom margin
+	short img_h_no_margin;	// height of screen without top and bottom margin
 	short img_frame_rate;
 	uvga_signal_polarity_t h_polarity;
 	uvga_signal_polarity_t v_polarity;
@@ -222,6 +227,9 @@ private:
 	// VSync position in pixel
 	short vsync_start_pix;
 	short vsync_end_pix;
+
+	short v_top_margin;			// number of empty lines at top of the screen
+	short v_bottom_margin;		// number of empty lines at bottom of the screen
 
 	// pixel clock = at least (PIT frequency / PIT overflow value)
 	int pxc_freq;			// frequency of the pixel clock
@@ -413,10 +421,10 @@ extern unsigned char _vga_font8x8[];
 #define UVGA_FB_ROW_STRIDE(image_width)     						(((image_width) + 1 + 15) & 0xFFF0)
 
 // height of the frame buffer
-#define UVGA_FB_HEIGHT(image_height, repeat_line_factor)		(((image_height) + (repeat_line_factor) - 1) / (repeat_line_factor))
+#define UVGA_FB_HEIGHT(image_height, repeat_line_factor, top_margin, bottom_margin)		(((image_height) - (top_margin) - (bottom_margin) + (repeat_line_factor) - 1) / (repeat_line_factor))
 
 // size of the frame buffer in byte, including SRAM_L buffer
-#define UVGA_FB_SIZE(image_width, image_height, repeat_line_factor)    	((UVGA_FB_ROW_STRIDE(image_width) * (UVGA_FB_HEIGHT(image_height, repeat_line_factor) + 1) + 15))
+#define UVGA_FB_SIZE(image_width, image_height, repeat_line_factor, top_margin, bottom_margin)    	((UVGA_FB_ROW_STRIDE(image_width) * (UVGA_FB_HEIGHT(image_height, repeat_line_factor, top_margin, bottom_margin) + 1) + 15))
 
 // address of first byte used in preallocated buffer, it is also the address of SRAM_L buffer
 #define UVGA_BUFFER_START(allocated_frame_buffer)				((uint8_t *)(((int)(allocated_frame_buffer) + 15) & ~0xF))
@@ -427,7 +435,7 @@ extern unsigned char _vga_font8x8[];
 // address of line in frame buffer (0 <= y < fb_height)
 #define UVGA_LINE_ADDRESS(allocated_frame_buffer, fb_row_stride, y)     (UVGA_FB_START(allocated_frame_buffer, fb_row_stride) + (y) * (fb_row_stride))
 
-#define UVGA_STATIC_FRAME_BUFFER(fb_name)		DMAMEM uint8_t (fb_name)[UVGA_FB_SIZE(UVGA_HREZ, UVGA_VREZ, UVGA_RPTL)]
+#define UVGA_STATIC_FRAME_BUFFER(fb_name)		DMAMEM uint8_t (fb_name)[UVGA_FB_SIZE(UVGA_HREZ, UVGA_VREZ, UVGA_RPTL, UVGA_TOP_MARGIN, UVGA_BOTTOM_MARGIN)]
 
 #endif
 

@@ -46,6 +46,9 @@ extern "C"
 #define UVGA_HREZ 602
 #define UVGA_VREZ 600
 #define UVGA_RPTL 2
+#define UVGA_TOP_MARGIN 0
+#define UVGA_BOTTOM_MARGIN 0
+
 uVGAmodeline modeline = {
    .pixel_clock = 36000000, //36MHz
    .hres = UVGA_HREZ,
@@ -56,6 +59,8 @@ uVGAmodeline modeline = {
    .vsync_start = 601,
    .vsync_end = 603,
    .vtotal = 625,
+	.top_margin = UVGA_TOP_MARGIN,
+	.bottom_margin = UVGA_BOTTOM_MARGIN,
    .h_polarity = UVGA_POSITIVE_POLARITY,
    .v_polarity = UVGA_POSITIVE_POLARITY,
    .img_color_mode = UVGA_RGB332,

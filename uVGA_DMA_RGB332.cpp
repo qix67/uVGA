@@ -65,7 +65,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_single_repeat_1()
 	DPRINTLN("rgb332_dma_init_dma_single_repeat_1");
 
 	// the number of major loop of the first DMA channel is:
-	// 1 major loop for image containing img_h minor loop copying fb_row_stride bytes + 3 major loop for VBlanking (1 before sync, 1 during sync and 1 after sync)
+	// 1 major loop for image containing img_h_no_margin minor loop copying fb_row_stride bytes + 3 major loop for VBlanking (1 before sync, 1 during sync and 1 after sync)
 	// some modeline has no delay between end of image en begin of vsync. The library supports this and discard the first vblank TCD
 	px_dma_nb_major_loop = 1 + 3;
 
@@ -87,12 +87,12 @@ uvga_error_t uVGA::rgb332_dma_init_dma_single_repeat_1()
 	cur_tcd->SOFF = 1;					// after each read, move source address 16 byte forward
 	cur_tcd->ATTR_SRC = DMA_TCD_ATTR_DSIZE(DMA_TCD_ATTR_SIZE_8BIT);				// source data size = 1 byte
 	cur_tcd->NBYTES = fb_row_stride;	// each minor loop transfers 1 framebuffer line
-	cur_tcd->SLAST = -img_h * fb_row_stride;	// at end of major loop, move start address back to its initial position
+	cur_tcd->SLAST = -img_h_no_margin * fb_row_stride;	// at end of major loop, move start address back to its initial position
 
 	cur_tcd->DADDR = (volatile void*)&GPIOD_PDOR;		// destination is port D register. It is a 32 bits register
 	cur_tcd->DOFF = 0;					// never change write destination, the register does not move :)
 	cur_tcd->ATTR_DST = DMA_TCD_ATTR_DSIZE(DMA_TCD_ATTR_SIZE_8BIT);				// write data size = 8 bits
-	cur_tcd->CITER = img_h;					// major loop should transfer all lines
+	cur_tcd->CITER = img_h_no_margin;					// major loop should transfer all lines
 	cur_tcd->DLASTSGA = (int32_t)(cur_tcd+1);	// scatter/gather mode enabled. At end of major loop of this TCD, switch to the next TCD
 	cur_tcd->CSR = DMA_TCD_CSR_ESG | DMA_TCD_CSR_BWC(px_dma_bwc) ;	// enable scatter/gather mode (add  "| DMA_TCD_CSR_INTMAJOR" have a hsync interrupt after image and before blanking time)
 	cur_tcd->BITER = cur_tcd->CITER;
@@ -125,7 +125,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_single_repeat_more_than_1()
 	// the number of major loop of the first DMA channel is:
 	// 1 major loop per line + 3 major loop for VBlanking (1 before sync, 1 during sync and 1 after sync)
 	// some modeline has no delay between end of image en begin of vsync. The library supports this and discard the first vblank TCD
-	px_dma_nb_major_loop = img_h + 3;
+	px_dma_nb_major_loop = img_h_no_margin + 3;
 
 	sram_u_dma_nb_major_loop = 0;
 
@@ -140,7 +140,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_single_repeat_more_than_1()
 	// 1) build TCD to display lines and do Vsync
 
 	// here, 1 TCD exists per line, minor loop displays 1 line. Then, scatter/gather mode switch to the next TCD
-	for(t = 0; t < img_h ; t++)
+	for(t = 0; t < img_h_no_margin ; t++)
 	{
 		// line TCD configuration. each byte of the write buffer is written as a 32 bits value inside GPIO port D
 		cur_tcd->SADDR = fb_row_pointer[t];	// source is line 't' of frame buffer or DMA indirection
@@ -183,7 +183,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_1()
 
 	DPRINTLN("rgb332_dma_init_dma_multiple_repeat_1");
 
-	nb_sram_u_fb_lines = (img_h - first_line_in_sram_u);		// number of lines of frame buffer in SRAM_U
+	nb_sram_u_fb_lines = (img_h_no_margin - first_line_in_sram_u);		// number of lines of frame buffer in SRAM_U
 
 	// the number of major loop of the first DMA channel is... complex to compute.
 	// ... or not :)
@@ -191,7 +191,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_1()
 	// the image uses 1+N major loops:
 	// The 1st major loop copies all lines located in SRAM_L. When this major loop ends, it starts the 2nd DMA to copy 1 line from SRAM_U to SRAM_L buffer.
 	// The N major loop copies 1 line located in SRAM_L buffer. N is the number of line in SRAM_U. When this major loop ends, it starts then 2nd DMA to copy 1 line from SRAM_U to SRAM_L buffer
-	px_dma_nb_major_loop = 1 + (img_h - first_line_in_sram_u) + 3;
+	px_dma_nb_major_loop = 1 + (img_h_no_margin - first_line_in_sram_u) + 3;
 
 	// In this case, 2nd and 3rd DMA channel have only 1 TCD, it is not necessary to allocated them in RAM
 	// at least 1 line is in SRAM_U else we would be in this function
@@ -236,7 +236,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_1()
 	dump(first_line_in_sram_u);
 
 	// 2nd TCD copies SRAM_L buffer
-	for(t = first_line_in_sram_u; t < img_h ; t++)
+	for(t = first_line_in_sram_u; t < img_h_no_margin ; t++)
 	{
 		// line TCD configuration. each byte of the write buffer is written as a 32 bits value inside GPIO port D
 		cur_tcd->SADDR = sram_l_dma_address; // source is line 't' of frame buffer or DMA indirection
@@ -252,7 +252,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_1()
 		cur_tcd->DLASTSGA = (int32_t)(cur_tcd+1);	// scatter/gather mode enabled. At end of major loop of this TCD, switch to the next TCD
 
 		// the last line does not trigger copy of the next line because it does not exist
-		if(t != (img_h - 1))
+		if(t != (img_h_no_margin - 1))
 			cur_tcd->CSR = DMA_TCD_CSR_ESG | DMA_TCD_CSR_BWC(px_dma_bwc) | DMA_TCD_CSR_MAJORLINKCH(sram_u_dma_num) | DMA_TCD_CSR_MAJORELINK ;	// enable scatter/gather mode (add  "| DMA_TCD_CSR_INTMAJOR" have a hsync interrupt after image and before blanking time)
 		else
 			cur_tcd->CSR = DMA_TCD_CSR_ESG | DMA_TCD_CSR_BWC(px_dma_bwc);	// enable scatter/gather mode (add  "| DMA_TCD_CSR_INTMAJOR" have a hsync interrupt after image and before blanking time)
@@ -345,7 +345,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_2()
 
 	DPRINTLN("rgb332_dma_init_dma_multiple_repeat_2");
 
-	nb_sram_u_fb_lines = (img_h - first_line_in_sram_u) / 2;		// number of lines of frame buffer in SRAM_U
+	nb_sram_u_fb_lines = (img_h_no_margin - first_line_in_sram_u) / 2;		// number of lines of frame buffer in SRAM_U
 
 	// the number of major loop of the first DMA channel is... complex to compute.
 	// ... or not :)
@@ -362,7 +362,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_2()
 	// LOOP 2 (V=1)=> line 1, line 2
 	// LOOP 3 (V=2)=> line 2
 	v = first_line_in_sram_u / 2 - 1;
-	px_dma_nb_major_loop = 1 + v + (img_h - first_line_in_sram_u) + 3;
+	px_dma_nb_major_loop = 1 + v + (img_h_no_margin - first_line_in_sram_u) + 3;
 
 	// In this case, 2nd and 3rd DMA channel have only 1 TCD, it is not necessary to allocated them in RAM
 	// at least 1 line is in SRAM_U else we would be in this function
@@ -457,7 +457,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_2()
 
 	// 2nd TCD copies SRAM_L buffer
 	sram_l_copy = false;
-	for(t = first_line_in_sram_u; t < img_h ; t++)
+	for(t = first_line_in_sram_u; t < img_h_no_margin ; t++)
 	{
 		// line TCD configuration. each byte of the write buffer is written as a 32 bits value inside GPIO port D
 		cur_tcd->SADDR = sram_l_dma_address; // source is line 't' of frame buffer or DMA indirection
@@ -474,7 +474,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_2()
 
 		// the last line does not trigger copy of the next line because it does not exist
 		// the copy only occurs every 2 frames buffer line because line are replicated
-		if( (t != (img_h - 1)) && (sram_l_copy))
+		if( (t != (img_h_no_margin - 1)) && (sram_l_copy))
 			cur_tcd->CSR = DMA_TCD_CSR_ESG | DMA_TCD_CSR_BWC(px_dma_bwc) | DMA_TCD_CSR_MAJORLINKCH(sram_u_dma_num) | DMA_TCD_CSR_MAJORELINK ;	// enable scatter/gather mode (add  "| DMA_TCD_CSR_INTMAJOR" have a hsync interrupt after image and before blanking time)
 		else
 			cur_tcd->CSR = DMA_TCD_CSR_ESG | DMA_TCD_CSR_BWC(px_dma_bwc);	// enable scatter/gather mode (add  "| DMA_TCD_CSR_INTMAJOR" have a hsync interrupt after image and before blanking time)
@@ -571,7 +571,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_more_than_2()
 	// the number of major loop of the first DMA channel is:
 	// 1 major loop per line + 3 major loop for VBlanking (1 before sync, 1 during sync and 1 after sync)
 	// some modeline has no delay between end of image en begin of vsync. The library supports this and discard the first vblank TCD
-	px_dma_nb_major_loop = img_h + 3;
+	px_dma_nb_major_loop = img_h_no_margin + 3;
 
 	sram_u_dma_nb_major_loop = 0;
 
@@ -580,7 +580,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_more_than_2()
 
 	// a line must be copied to SRAM_L before being display if its dma address is not in SRAM_L and it differs from the previous line 
 	// (no need to copy multiple times the same line in SRAM_L buffer
-	for(t = 0; t < img_h; t++)
+	for(t = 0; t < img_h_no_margin; t++)
 	{
 		if( (fb_row_pointer[t] != dma_row_pointer[t])
 			&& (fb_row_pointer[t] != fb_row_pointer[t - 1])
@@ -606,7 +606,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_more_than_2()
 	// 1) build TCD to display lines and do Vsync
 
 	// here, 1 TCD exists per line, minor loop displays 1 line. Then, scatter/gather mode switch to the next TCD
-	for(t = 0; t < img_h ; t++)
+	for(t = 0; t < img_h_no_margin ; t++)
 	{
 		// line TCD configuration. each byte of the write buffer is written as a 32 bits value inside GPIO port D
 		cur_tcd->SADDR = row_pointer[t];	// source is line 't' of frame buffer or DMA indirection
@@ -638,7 +638,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_more_than_2()
 	int nb_dma_fix = 0;
 
 	// the first frame buffer line is processed after the last image line
-	for(t = 1; t < img_h ; t++)
+	for(t = 1; t < img_h_no_margin ; t++)
 	{
 		if( (fb_row_pointer[t] != dma_row_pointer[t])
 			&& (fb_row_pointer[t] != fb_row_pointer[t - 1])
@@ -713,7 +713,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_more_than_2()
 		cur_tcd->BITER = cur_tcd->CITER;
 
 		// modify pixel DMA TCD from last line to trigger a start of sram_u dma
-		px_dma_major_loop[img_h - 1].CSR |= DMA_TCD_CSR_MAJORLINKCH(sram_u_dma_num) | DMA_TCD_CSR_MAJORELINK;
+		px_dma_major_loop[img_h_no_margin - 1].CSR |= DMA_TCD_CSR_MAJORLINKCH(sram_u_dma_num) | DMA_TCD_CSR_MAJORELINK;
 
 		cur_tcd->CSR |= DMA_TCD_CSR_MAJORLINKCH(sram_u_dma_fix_num) | DMA_TCD_CSR_MAJORELINK;
 
@@ -723,7 +723,7 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_more_than_2()
 	// now, time to create TCD for 3rd DMA
 	// it will recopy dma_row_pointer to 2nd DMA TCD. The minor loop will copy 1 pointer at each trigger
 	// and the major loop will end when all pointers were copied
-	for(t = 1; t < img_h; t++)
+	for(t = 1; t < img_h_no_margin; t++)
 	{
 		if( (fb_row_pointer[t] != dma_row_pointer[t])
 			&& (fb_row_pointer[t] != fb_row_pointer[t - 1])
