@@ -2,7 +2,10 @@
 
 uVGA uvga;
 
-//#define UVGA_DEFAULT_REZ
+#if F_CPU != 240000000
+#pragma message "240MHz demo only"
+#endif
+
 #define UVGA_240M_452X240
 #include <uVGA_valid_settings.h>
 
@@ -38,22 +41,23 @@ void setup()
 	cpydma.begin(false);
 	cdma_num = cpydma.channel;
 	cdma = &(edma_TCD[cdma_num]);
-	cdmamux = (volatile uint8_t *)&(DMAMUX0_CHCFG0) + cdma_num;
+	cdmamux = (volatile uint8_t *) & (DMAMUX0_CHCFG0) + cdma_num;
 
 	*cdmamux = DMAMUX_ENABLE | DMAMUX_SOURCE_ALWAYS0;
 
-   static volatile uint8_t *dma_chprio[DMA_NUM_CHANNELS] = {
-                                                &DMA_DCHPRI0,  &DMA_DCHPRI1,  &DMA_DCHPRI2,  &DMA_DCHPRI3,
-                                                &DMA_DCHPRI4,  &DMA_DCHPRI5,  &DMA_DCHPRI6,  &DMA_DCHPRI7,
-                                                &DMA_DCHPRI8,  &DMA_DCHPRI9,  &DMA_DCHPRI10, &DMA_DCHPRI11,
-                                                &DMA_DCHPRI12, &DMA_DCHPRI13, &DMA_DCHPRI14, &DMA_DCHPRI15
+	static volatile uint8_t *dma_chprio[DMA_NUM_CHANNELS] =
+	{
+		&DMA_DCHPRI0,  &DMA_DCHPRI1,  &DMA_DCHPRI2,  &DMA_DCHPRI3,
+		&DMA_DCHPRI4,  &DMA_DCHPRI5,  &DMA_DCHPRI6,  &DMA_DCHPRI7,
+		&DMA_DCHPRI8,  &DMA_DCHPRI9,  &DMA_DCHPRI10, &DMA_DCHPRI11,
+		&DMA_DCHPRI12, &DMA_DCHPRI13, &DMA_DCHPRI14, &DMA_DCHPRI15
 #if DMA_NUM_CHANNELS > 16
-                                                ,&DMA_DCHPRI16, &DMA_DCHPRI17, &DMA_DCHPRI18, &DMA_DCHPRI19,
-                                                &DMA_DCHPRI20, &DMA_DCHPRI21, &DMA_DCHPRI22, &DMA_DCHPRI23,
-                                                &DMA_DCHPRI24, &DMA_DCHPRI25, &DMA_DCHPRI26, &DMA_DCHPRI27,
-                                                &DMA_DCHPRI28, &DMA_DCHPRI29, &DMA_DCHPRI30, &DMA_DCHPRI31
+		, &DMA_DCHPRI16, &DMA_DCHPRI17, &DMA_DCHPRI18, &DMA_DCHPRI19,
+		&DMA_DCHPRI20, &DMA_DCHPRI21, &DMA_DCHPRI22, &DMA_DCHPRI23,
+		&DMA_DCHPRI24, &DMA_DCHPRI25, &DMA_DCHPRI26, &DMA_DCHPRI27,
+		&DMA_DCHPRI28, &DMA_DCHPRI29, &DMA_DCHPRI30, &DMA_DCHPRI31
 #endif
-															};
+	};
 	*dma_chprio[cdma_num] = *dma_chprio[cdma_num] | DMA_DCHPRI_ECP;
 
 }
@@ -104,7 +108,6 @@ int fb_height;
 
 void loop()
 {
-	//int frame = 0;
 
 	fb_row_stride = UVGA_FB_ROW_STRIDE(UVGA_HREZ);
 
@@ -118,11 +121,11 @@ void loop()
 
 	while(true)
 	{
-	long startTime = millis();
-		float cosPhi = (float)cosf(phi);
-		float sinPhi = (float)sinf(phi);
-		float cosTheta = (float)cosf(theta);
-		float sinTheta = (float)sinf(theta);
+		//long startTime = millis();
+		float cosPhi = cosf(phi);
+		float sinPhi = sinf(phi);
+		float cosTheta = cosf(theta);
+		float sinTheta = sinf(theta);
 
 		float ux = cosPhi * sinTheta;
 		float uy = sinPhi * sinTheta;
@@ -166,9 +169,18 @@ void loop()
 		int GY = (int)floorf(oy / GRID_SIZE) * GRID_SIZE;
 		int GZ = (int)floorf(oz / GRID_SIZE) * GRID_SIZE;
 
+#ifndef FISH_EYE_LENS
+		float Y = HEIGHT / 2  - 0.5f;
+		float YY = Y * Y;
+#endif
 		for(int s_h = 0; s_h < HEIGHT; s_h++)
 		{
 			uint8_t *fb = UVGA_LINE_ADDRESS(uvga_fb1, fb_row_stride, s_h);
+
+#ifndef FISH_EYE_LENS
+			float X = - WIDTH / 2 + 0.5f;
+			float XX = X * X;
+#endif
 
 			for(int s_w = 0; s_w < WIDTH; s_w++)
 			{
@@ -195,10 +207,7 @@ void loop()
 					}
 #else
 					{
-						float X = s_w - WIDTH / 2 + 0.5f;
-						float Y = -(s_h - HEIGHT / 2  + 0.5f);
-
-						float Mag = sqrtf(X * X + Y * Y + Z0 * Z0);
+						float Mag = sqrtf(XX + YY + Z0 * Z0);
 
 						Rx = X / Mag;
 						Ry = Y / Mag;
@@ -226,129 +235,134 @@ void loop()
 					float rxrx = rx * rx;
 					float ryry = ry * ry;
 					float rzrz = rz * rz;
-					
+
 					float dxdx = dx * dx;
 					float dydy = dy * dy;
 					float dzdz = dz * dz;
-					
+
 					float dxrx = dx * rx;
 					float dyry = dy * ry;
 					float dzrz = dz * rz;
-					
-					// hit green cylinder ?
-					float A = rxrx + rzrz;
-					float B = (dxrx + dzrz);
-					float C = dxdx + dzdz - CYLINDER_RADIUS_2;
-					float D = B * B - A * C;
-					if (D > 0)
-					{
-						float t = (-B - sqrtf(D)) / A;
-						if (t > 0)
-						{
-							float y = oy + ry * t;
-							if (y >= gy && y <= (gy + GRID_SIZE))
-							{
-								float nx = dx + rx * t;
-								float nz = dz + rz * t;
-								float diffuse =	(nx * LIGHT_DIRECTION_X
-								                   + nz * LIGHT_DIRECTION_Z);
-								green = GREEN_MIN;
-								if (diffuse > 0)
-								{
-									green += (int)(diffuse * (GREEN_RANGE)/ CYLINDER_RADIUS);
-								}
-								red = 0;
-								blue = 0;
 
-								minT = t;
+					// hit light blue cylinder ?
+					{
+						float A = rxrx + rzrz;
+						float B = (dxrx + dzrz);
+						float C = dxdx + dzdz - CYLINDER_RADIUS_2;
+						float D = B * B - A * C;
+						if (D > 0)
+						{
+							float t = -(B + sqrtf(D)) / A;
+							if (t > 0)
+							{
+								float y = oy + ry * t;
+								if (y >= gy && y <= (gy + GRID_SIZE))
+								{
+									float nx = dx + rx * t;
+									float nz = dz + rz * t;
+									float diffuse =	(nx * LIGHT_DIRECTION_X
+									                   + nz * LIGHT_DIRECTION_Z);
+									green = GREEN_MIN;
+									if (diffuse > 0)
+									{
+										green += (int)(diffuse * (GREEN_RANGE) / CYLINDER_RADIUS);
+									}
+
+									blue = 255;
+									minT = t;
+								}
 							}
 						}
 					}
 
 					// hit yellow cylinder ?
-					A = ryry + rzrz;
-					B = (dyry + dzrz);
-					C = dydy + dzdz - CYLINDER_RADIUS_2;
-					D = B * B - A * C;
-					if (D > 0)
 					{
-						float t = -(B + sqrtf(D)) / A;
-						if (t > 0 && t < minT)
+						float A = ryry + rzrz;
+						float B = (dyry + dzrz);
+						float C = dydy + dzdz - CYLINDER_RADIUS_2;
+						float D = B * B - A * C;
+						if (D > 0)
 						{
-							float x = ox + rx * t;
-							if (x >= gx && x <= (gx + GRID_SIZE))
+							float t = -(B + sqrtf(D)) / A;
+							if (t > 0 && t < minT)
 							{
-								float ny = dy + ry * t;
-								float nz = dz + rz * t;
-								float diffuse =	(ny * LIGHT_DIRECTION_Y
-								                   + nz * LIGHT_DIRECTION_Z);
-								red = RED_MIN;
-								if (diffuse > 0)
+								float x = ox + rx * t;
+								if (x >= gx && x <= (gx + GRID_SIZE))
 								{
-									red += (int)(diffuse * (RED_RANGE)/ CYLINDER_RADIUS);
+									float ny = dy + ry * t;
+									float nz = dz + rz * t;
+									float diffuse =	(ny * LIGHT_DIRECTION_Y
+									                   + nz * LIGHT_DIRECTION_Z);
+									red = RED_MIN;
+									if (diffuse > 0)
+									{
+										red += (int)(diffuse * (RED_RANGE) / CYLINDER_RADIUS);
+									}
+									green = red;
+									blue = 0;
+									minT = t;
 								}
-								green = red;
-								blue = 0;
-
-								minT = t;
 							}
 						}
 					}
 
-					// hit blue cylinder ?
-					A = ryry + rxrx;
-					B = (dyry + dxrx);
-					C = dydy + dxdx - CYLINDER_RADIUS_2;
-					D = B * B - A * C;
-					if (D > 0)
+					// hit light green cylinder ?
 					{
-						float t = (-B - sqrtf(D)) / A;
-						if (t > 0 && t < minT)
+						float A = ryry + rxrx;
+						float B = (dyry + dxrx);
+						float C = dydy + dxdx - CYLINDER_RADIUS_2;
+						float D = B * B - A * C;
+						if (D > 0)
 						{
-							float z = oz + rz * t;
-							if (z >= gz && z <= (gz + GRID_SIZE))
+							float t = -(B + sqrtf(D)) / A;
+							if (t > 0 && t < minT)
 							{
-								float ny = dy + ry * t;
-								float nx = dx + rx * t;
-								float diffuse =	(ny * LIGHT_DIRECTION_Y
-								                   + nx * LIGHT_DIRECTION_X);
-								blue = BLUE_MIN;
-								if (diffuse > 0)
+								float z = oz + rz * t;
+								if (z >= gz && z <= (gz + GRID_SIZE))
 								{
-									blue += (int)(diffuse * (BLUE_RANGE) / CYLINDER_RADIUS);
+									float ny = dy + ry * t;
+									float nx = dx + rx * t;
+									float diffuse =	(ny * LIGHT_DIRECTION_Y
+									                   + nx * LIGHT_DIRECTION_X);
+									green = GREEN_MIN;
+									if (diffuse > 0)
+									{
+										green += (int)(diffuse * (GREEN_RANGE) / CYLINDER_RADIUS);
+									}
+									red = 0;
+									blue = green >> 1;
+									minT = t;
 								}
-								red = 0;
-								green = 0;
-
-								minT = t;
 							}
 						}
 					}
 
 					// hit red sphere ?
-					B = dxrx + dyry + dzrz;
-					C = dxdx + dydy + dzdz - SPHERE_RADIUS_2;
-					D = B * B - C;
-					if (D > 0)
 					{
-						float t = -B - sqrtf(D);
-						if (t > 0 && t < minT)
+						float B = dxrx + dyry + dzrz;
+						float C = dxdx + dydy + dzdz - SPHERE_RADIUS_2;
+						float D = B * B - C;
+						if (D > 0)
 						{
-							float nx = dx + rx * t;
-							float ny = dy + ry * t;
-							float nz = dz + rz * t;
-							float diffuse =	(nx * LIGHT_DIRECTION_X
-							                   + ny * LIGHT_DIRECTION_Y
-							                   + nz * LIGHT_DIRECTION_Z);
-							red = RED_MIN;
-							if (diffuse > 0)
+							float t = -B - sqrtf(D);
+							if (t > 0 && t < minT)
 							{
-								red += (int)(diffuse * (RED_RANGE)/ SPHERE_RADIUS);
-							}
-							green = 0;
-							blue = 0;
+								float nx = dx + rx * t;
+								float ny = dy + ry * t;
+								float nz = dz + rz * t;
+								float diffuse =	(nx * LIGHT_DIRECTION_X
+								                   + ny * LIGHT_DIRECTION_Y
+								                   + nz * LIGHT_DIRECTION_Z);
+								red = RED_MIN;
+								if (diffuse > 0)
+								{
+									red += (int)(diffuse * (RED_RANGE) / SPHERE_RADIUS);
+								}
+								green = 0;
+								blue = 0;
 
-							break;
+								break;
+							}
 						}
 					}
 
@@ -358,35 +372,32 @@ void loop()
 					{
 						float tx, ty, tz;
 
-						tx = gx;
+						tx = gx - ox;
 
 						if(rx > 0)
 						{
 							tx += GRID_SIZE;
 						}
 
-						tx -= ox;
 						tx /= rx;
 
-						ty = gy;
+						ty = gy - oy;
 
 						if (ry > 0)
 						{
 							ty += GRID_SIZE;
 						}
 
-						ty -= oy;
 						ty /= ry;
 
 
-						tz = gz;
+						tz = gz - oz;
 
 						if (rz > 0)
 						{
 							tz += GRID_SIZE;
 						}
 
-						tz -= oz;
 						tz /= rz;
 
 
@@ -424,16 +435,23 @@ void loop()
 					}
 				}
 
-				red = (red >> 5) & 0x7;
 				green = (green >> 5) & 0x7;
 				blue = (blue >> 6) & 0x3;
 
-				*fb++ = (red << 5) | (green << 2) | blue;
+				*fb++ = (red & (0x7 << 5)) | (green << 2) | blue;
+#ifndef FISH_EYE_LENS
+				X++;
+				XX = X * X;
+#endif
 			}
+#ifndef FISH_EYE_LENS
+			Y--;
+			YY = Y * Y;
+#endif
 		}
 
-		Serial.println(millis()- startTime);
-	
+		//Serial.println(millis() - startTime);
+
 		// fast copy back buffer to front buffer using DMA
 #if 0
 		memcpy(UVGA_FB_START(uvga_fb, fb_row_stride), UVGA_FB_START(uvga_fb1, fb_row_stride), HEIGHT * fb_row_stride);
@@ -441,7 +459,7 @@ void loop()
 		cdma->SADDR = UVGA_FB_START(uvga_fb1, fb_row_stride);      // source is first line of frame buffer partially in SRAM_U
 		cdma->SOFF = 16;                                         // after each read, move source address 16 bytes forward
 		cdma->ATTR_SRC = DMA_TCD_ATTR_DSIZE(DMA_TCD_ATTR_SIZE_16BYTE);          // source data size = 16 bytes
-		cdma->NBYTES = HEIGHT*fb_row_stride;                            // each minor loop transfers 1 framebuffer line
+		cdma->NBYTES = HEIGHT * fb_row_stride;                          // each minor loop transfers 1 framebuffer line
 		cdma->SLAST = 0;
 
 		cdma->DADDR = UVGA_FB_START(uvga_fb, fb_row_stride);                        // destination is the SRAM_L buffer
@@ -455,5 +473,6 @@ void loop()
 		uvga.waitBeam();
 		edma->SERQ = cdma_num;
 
+		// no need to wait end of DMA, first pixels will be copied before the CPU can compute their new values
 	}
 }
