@@ -28,7 +28,8 @@ void setup()
 
 int WIDTH = UVGA_HREZ;
 int HEIGHT = UVGA_FB_HEIGHT(UVGA_VREZ, UVGA_RPTL, UVGA_TOP_MARGIN, UVGA_BOTTOM_MARGIN);
-boolean FISH_EYE_LENS = false;
+
+//#define FISH_EYE_LENS
 
 #define ITERATIONS 256
 #define GRID_SIZE  256.0f
@@ -61,7 +62,6 @@ int fb_height;
 void loop()
 {
 	//int frame = 0;
-	//long startTime = millis() - 1;
 
 	fb_row_stride = UVGA_FB_ROW_STRIDE(UVGA_HREZ);
 
@@ -69,10 +69,13 @@ void loop()
 
 	memset(uvga_fb1, 0, sizeof(uvga_fb1));
 
+#ifdef FISH_EYE_LENS
 	float MAX = MATH_MAX(WIDTH, HEIGHT);
+#endif
 
 	while(true)
 	{
+	long startTime = millis();
 		float cosPhi = (float)cosf(phi);
 		float sinPhi = (float)sinf(phi);
 		float cosTheta = (float)cosf(theta);
@@ -94,12 +97,15 @@ void loop()
 		float LIGHT_DIRECTION_Y = wy;
 		float LIGHT_DIRECTION_Z = wz;
 
-		if (FISH_EYE_LENS)
-		{
-			LIGHT_DIRECTION_X = -vx;
-			LIGHT_DIRECTION_Y = -vy;
-			LIGHT_DIRECTION_Z = -vz;
-		}
+#ifdef FISH_EYE_LENS
+		LIGHT_DIRECTION_X = -vx;
+		LIGHT_DIRECTION_Y = -vy;
+		LIGHT_DIRECTION_Z = -vz;
+
+		float X_OFFSET = WIDTH < HEIGHT ? (HEIGHT - WIDTH) / 2 : 0;
+		float Y_OFFSET = HEIGHT < WIDTH ? (WIDTH - HEIGHT) / 2 : 0;
+
+#endif
 
 		ox += VELOCITY_X;
 		oy += VELOCITY_Y;
@@ -113,12 +119,9 @@ void loop()
 				}
 		*/
 
-		int GX = (int)floorf(ox / GRID_SIZE);
-		int GY = (int)floorf(oy / GRID_SIZE);
-		int GZ = (int)floorf(oz / GRID_SIZE);
-
-		float X_OFFSET = WIDTH < HEIGHT ? (HEIGHT - WIDTH) / 2 : 0;
-		float Y_OFFSET = HEIGHT < WIDTH ? (WIDTH - HEIGHT) / 2 : 0;
+		int GX = (int)floorf(ox / GRID_SIZE) * GRID_SIZE;
+		int GY = (int)floorf(oy / GRID_SIZE) * GRID_SIZE;
+		int GZ = (int)floorf(oz / GRID_SIZE) * GRID_SIZE;
 
 		for(int s_h = 0; s_h < HEIGHT; s_h++)
 		{
@@ -132,14 +135,14 @@ void loop()
 				uint8_t green = 0;
 				uint8_t blue = 0;
 
-				int gx = GX * GRID_SIZE;
-				int gy = GY * GRID_SIZE;
-				int gz = GZ * GRID_SIZE;
+				int gx = GX;
+				int gy = GY;
+				int gz = GZ;
 
 				{
 					float Rx, Ry, Rz;
 
-					if (FISH_EYE_LENS)
+#ifdef FISH_EYE_LENS
 					{
 						float theta = (float)(PI * (0.5f + s_h + Y_OFFSET) / (float)MAX);
 						float phi = (float)(PI * (0.5f + s_w + X_OFFSET) / (float)MAX);
@@ -147,7 +150,7 @@ void loop()
 						Ry = (float)(sinf(phi) * sinf(theta));
 						Rz = (float)(cosf(theta));
 					}
-					else
+#else
 					{
 						float X = s_w - WIDTH / 2 + 0.5f;
 						float Y = -(s_h - HEIGHT / 2  + 0.5f);
@@ -158,6 +161,7 @@ void loop()
 						Ry = Y / Mag;
 						Rz = -Z0 / Mag;
 					}
+#endif
 
 					rx = ux * Rx + vx * Ry + wx * Rz;
 					ry = uy * Rx + vy * Ry + wy * Rz;
@@ -166,34 +170,37 @@ void loop()
 
 				for(int i = 0; i < ITERATIONS; i++)
 				{
-					float j, l;
-
 					float minT = MAXFLOAT;
 
-					float minY = gy;
-					float maxY = minY + GRID_SIZE;
+					float sx = gx + (GRID_SIZE / 2);
+					float sy = gy + (GRID_SIZE / 2);
+					float sz = gz + (GRID_SIZE / 2);
 
-					j = gx + (GRID_SIZE / 2);
-					l = gz + (GRID_SIZE / 2);
+					float dx = ox - sx;
+					float dy = oy - sy;
+					float dz = oz - sz;
 
-					float P = ox - j;
-					float Q = oz - l;
-					float A = rx * rx + rz * rz;
-					float B = 2 * (P * rx + Q * rz);
-					float C = P * P + Q * Q - CYLINDER_RADIUS_2;
-					float D = B * B - 4 * A * C;
+					float rxrx = rx * rx;
+					float ryry = ry * ry;
+					float rzrz = rz * rz;
+					
+					// hit green cylinder ?
+					float A = rxrx + rzrz;
+					float B = (dx * rx + dz * rz);
+					float C = dx * dx + dz * dz - CYLINDER_RADIUS_2;
+					float D = B * B - A * C;
 					if (D > 0)
 					{
-						float t = (-B - (float)sqrtf(D)) / (2 * A);
+						float t = (-B - (float)sqrtf(D)) / A;
 						if (t > 0)
 						{
 							float y = oy + ry * t;
-							if (y >= minY && y <= maxY)
+							if (y >= gy && y <= (gy + GRID_SIZE))
 							{
 								minT = t;
 								i = ITERATIONS;
-								float nx = P + rx * t;
-								float nz = Q + rz * t;
+								float nx = dx + rx * t;
+								float nz = dz + rz * t;
 								float diffuse =	(nx * LIGHT_DIRECTION_X
 								                   + nz * LIGHT_DIRECTION_Z);
 								green = 128;
@@ -207,29 +214,23 @@ void loop()
 						}
 					}
 
-					float minX = gx;
-					float maxX = minX + GRID_SIZE;
-
-					j = gy + (GRID_SIZE / 2);
-					l = gz + (GRID_SIZE / 2);
-					P = oy - j;
-					Q = oz - l;
-					A = ry * ry + rz * rz;
-					B = 2 * (P * ry + Q * rz);
-					C = P * P + Q * Q - CYLINDER_RADIUS_2;
-					D = B * B - 4 * A * C;
+					// hit yellow cylinder ?
+					A = ryry + rzrz;
+					B = (dy * ry + dz * rz);
+					C = dy * dy + dz * dz - CYLINDER_RADIUS_2;
+					D = B * B - A * C;
 					if (D > 0)
 					{
-						float t = (-B - (float)sqrtf(D)) / (2 * A);
+						float t = (-B - (float)sqrtf(D)) / A;
 						if (t > 0 && t < minT)
 						{
 							float x = ox + rx * t;
-							if (x >= minX && x <= maxX)
+							if (x >= gx && x <= (gx + GRID_SIZE))
 							{
 								minT = t;
 								i = ITERATIONS;
-								float ny = P + ry * t;
-								float nz = Q + rz * t;
+								float ny = dy + ry * t;
+								float nz = dz + rz * t;
 								float diffuse =	(ny * LIGHT_DIRECTION_Y
 								                   + nz * LIGHT_DIRECTION_Z);
 								red = 128;
@@ -243,29 +244,23 @@ void loop()
 						}
 					}
 
-					float minZ = gz;
-					float maxZ = minZ + GRID_SIZE;
-
-					j = gy + (GRID_SIZE / 2);
-					l = gx + (GRID_SIZE / 2);
-					P = oy - j;
-					Q = ox - l;
-					A = ry * ry + rx * rx;
-					B = 2 * (P * ry + Q * rx);
-					C = P * P + Q * Q - CYLINDER_RADIUS_2;
-					D = B * B - 4 * A * C;
+					// hit blue cylinder ?
+					A = ryry + rxrx;
+					B = (dy * ry + dx * rx);
+					C = dy * dy + dx * dx - CYLINDER_RADIUS_2;
+					D = B * B - A * C;
 					if (D > 0)
 					{
-						float t = (-B - (float)sqrtf(D)) / (2 * A);
+						float t = (-B - (float)sqrtf(D)) / A;
 						if (t > 0 && t < minT)
 						{
 							float z = oz + rz * t;
-							if (z >= minZ && z <= maxZ)
+							if (z >= gz && z <= (gz + GRID_SIZE))
 							{
 								minT = t;
 								i = ITERATIONS;
-								float ny = P + ry * t;
-								float nx = Q + rx * t;
+								float ny = dy + ry * t;
+								float nx = dx + rx * t;
 								float diffuse =	(ny * LIGHT_DIRECTION_Y
 								                   + nx * LIGHT_DIRECTION_X);
 								blue = 128;
@@ -279,14 +274,7 @@ void loop()
 						}
 					}
 
-					float sx = gx + (GRID_SIZE / 2);
-					float sy = gy + (GRID_SIZE / 2);
-					float sz = gz + (GRID_SIZE / 2);
-
-					float dx = ox - sx;
-					float dy = oy - sy;
-					float dz = oz - sz;
-
+					// hit red sphere ?
 					B = dx * rx + dy * ry + dz * rz;
 					C = dx * dx + dy * dy + dz * dz - SPHERE_RADIUS_2;
 					D = B * B - C;
@@ -389,6 +377,7 @@ void loop()
 			}
 		}
 
+	Serial.println(millis()- startTime);
 		uvga.waitSync();
 		memcpy(UVGA_FB_START(uvga_fb, fb_row_stride), UVGA_FB_START(uvga_fb1, fb_row_stride), sizeof(uvga_fb1));
 	}
