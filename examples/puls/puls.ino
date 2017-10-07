@@ -9,9 +9,20 @@ uVGA uvga;
 UVGA_STATIC_FRAME_BUFFER(uvga_fb);
 UVGA_STATIC_FRAME_BUFFER(uvga_fb1);
 
+DMAChannel cpydma;
+
+DMABaseClass::TCD_t *cdma;
+volatile uint8_t *cdmamux;
+EDMA_REGs *edma = EDMA_ADDR;
+int cdma_num;
+
 void setup()
 {
 	int ret;
+	DMABaseClass::TCD_t *edma_TCD;
+
+	delay(1000);
+	edma_TCD = (DMABaseClass::TCD_t*)&DMA_TCD0_SADDR;
 
 	uvga.set_static_framebuffer(uvga_fb);
 	ret = uvga.begin(&modeline);
@@ -23,11 +34,33 @@ void setup()
 		Serial.println("fatal error");
 		while(1);
 	}
+
+	cpydma.begin(false);
+	cdma_num = cpydma.channel;
+	cdma = &(edma_TCD[cdma_num]);
+	cdmamux = (volatile uint8_t *)&(DMAMUX0_CHCFG0) + cdma_num;
+
+	*cdmamux = DMAMUX_ENABLE | DMAMUX_SOURCE_ALWAYS0;
+
+   static volatile uint8_t *dma_chprio[DMA_NUM_CHANNELS] = {
+                                                &DMA_DCHPRI0,  &DMA_DCHPRI1,  &DMA_DCHPRI2,  &DMA_DCHPRI3,
+                                                &DMA_DCHPRI4,  &DMA_DCHPRI5,  &DMA_DCHPRI6,  &DMA_DCHPRI7,
+                                                &DMA_DCHPRI8,  &DMA_DCHPRI9,  &DMA_DCHPRI10, &DMA_DCHPRI11,
+                                                &DMA_DCHPRI12, &DMA_DCHPRI13, &DMA_DCHPRI14, &DMA_DCHPRI15
+#if DMA_NUM_CHANNELS > 16
+                                                ,&DMA_DCHPRI16, &DMA_DCHPRI17, &DMA_DCHPRI18, &DMA_DCHPRI19,
+                                                &DMA_DCHPRI20, &DMA_DCHPRI21, &DMA_DCHPRI22, &DMA_DCHPRI23,
+                                                &DMA_DCHPRI24, &DMA_DCHPRI25, &DMA_DCHPRI26, &DMA_DCHPRI27,
+                                                &DMA_DCHPRI28, &DMA_DCHPRI29, &DMA_DCHPRI30, &DMA_DCHPRI31
+#endif
+															};
+	*dma_chprio[cdma_num] = *dma_chprio[cdma_num] | DMA_DCHPRI_ECP;
+
 }
 
 
-int WIDTH = UVGA_HREZ;
-int HEIGHT = UVGA_FB_HEIGHT(UVGA_VREZ, UVGA_RPTL, UVGA_TOP_MARGIN, UVGA_BOTTOM_MARGIN);
+#define WIDTH (UVGA_HREZ)
+#define HEIGHT (UVGA_FB_HEIGHT(UVGA_VREZ, UVGA_RPTL, UVGA_TOP_MARGIN, UVGA_BOTTOM_MARGIN))
 
 //#define FISH_EYE_LENS
 
@@ -42,9 +75,19 @@ int HEIGHT = UVGA_FB_HEIGHT(UVGA_VREZ, UVGA_RPTL, UVGA_TOP_MARGIN, UVGA_BOTTOM_M
 #define VELOCITY_THETA 0.002f
 #define VELOCITY_PHI 0.004f
 
-int PIXELS = WIDTH * HEIGHT;
-float SPHERE_RADIUS_2 = SPHERE_RADIUS * SPHERE_RADIUS;
-float CYLINDER_RADIUS_2 = CYLINDER_RADIUS * CYLINDER_RADIUS;
+#define RED_BITS 8
+#define GREEN_BITS 8
+#define BLUE_BITS 8
+#define RED_MIN 64
+#define GREEN_MIN RED_MIN
+#define BLUE_MIN RED_MIN
+
+#define RED_RANGE  (((1 << RED_BITS) -1) - RED_MIN)
+#define GREEN_RANGE  (((1 << GREEN_BITS) -1) - GREEN_MIN)
+#define BLUE_RANGE  (((1 << BLUE_BITS) -1) - BLUE_MIN)
+
+#define SPHERE_RADIUS_2 (SPHERE_RADIUS * SPHERE_RADIUS)
+#define CYLINDER_RADIUS_2 (CYLINDER_RADIUS * CYLINDER_RADIUS)
 
 #define MATH_MAX(x,y)		((x) > (y) ? (x) : (y))
 
@@ -155,7 +198,7 @@ void loop()
 						float X = s_w - WIDTH / 2 + 0.5f;
 						float Y = -(s_h - HEIGHT / 2  + 0.5f);
 
-						float Mag = (float)sqrtf(X * X + Y * Y + Z0 * Z0);
+						float Mag = sqrtf(X * X + Y * Y + Z0 * Z0);
 
 						Rx = X / Mag;
 						Ry = Y / Mag;
@@ -184,121 +227,133 @@ void loop()
 					float ryry = ry * ry;
 					float rzrz = rz * rz;
 					
+					float dxdx = dx * dx;
+					float dydy = dy * dy;
+					float dzdz = dz * dz;
+					
+					float dxrx = dx * rx;
+					float dyry = dy * ry;
+					float dzrz = dz * rz;
+					
 					// hit green cylinder ?
 					float A = rxrx + rzrz;
-					float B = (dx * rx + dz * rz);
-					float C = dx * dx + dz * dz - CYLINDER_RADIUS_2;
+					float B = (dxrx + dzrz);
+					float C = dxdx + dzdz - CYLINDER_RADIUS_2;
 					float D = B * B - A * C;
 					if (D > 0)
 					{
-						float t = (-B - (float)sqrtf(D)) / A;
+						float t = (-B - sqrtf(D)) / A;
 						if (t > 0)
 						{
 							float y = oy + ry * t;
 							if (y >= gy && y <= (gy + GRID_SIZE))
 							{
-								minT = t;
-								i = ITERATIONS;
 								float nx = dx + rx * t;
 								float nz = dz + rz * t;
 								float diffuse =	(nx * LIGHT_DIRECTION_X
 								                   + nz * LIGHT_DIRECTION_Z);
-								green = 128;
+								green = GREEN_MIN;
 								if (diffuse > 0)
 								{
-									green += (int)(127.0f * diffuse / CYLINDER_RADIUS);
+									green += (int)(diffuse * (GREEN_RANGE)/ CYLINDER_RADIUS);
 								}
 								red = 0;
 								blue = 0;
+
+								minT = t;
 							}
 						}
 					}
 
 					// hit yellow cylinder ?
 					A = ryry + rzrz;
-					B = (dy * ry + dz * rz);
-					C = dy * dy + dz * dz - CYLINDER_RADIUS_2;
+					B = (dyry + dzrz);
+					C = dydy + dzdz - CYLINDER_RADIUS_2;
 					D = B * B - A * C;
 					if (D > 0)
 					{
-						float t = (-B - (float)sqrtf(D)) / A;
+						float t = -(B + sqrtf(D)) / A;
 						if (t > 0 && t < minT)
 						{
 							float x = ox + rx * t;
 							if (x >= gx && x <= (gx + GRID_SIZE))
 							{
-								minT = t;
-								i = ITERATIONS;
 								float ny = dy + ry * t;
 								float nz = dz + rz * t;
 								float diffuse =	(ny * LIGHT_DIRECTION_Y
 								                   + nz * LIGHT_DIRECTION_Z);
-								red = 128;
+								red = RED_MIN;
 								if (diffuse > 0)
 								{
-									red += (int)(127.0f * diffuse / CYLINDER_RADIUS);
+									red += (int)(diffuse * (RED_RANGE)/ CYLINDER_RADIUS);
 								}
 								green = red;
 								blue = 0;
+
+								minT = t;
 							}
 						}
 					}
 
 					// hit blue cylinder ?
 					A = ryry + rxrx;
-					B = (dy * ry + dx * rx);
-					C = dy * dy + dx * dx - CYLINDER_RADIUS_2;
+					B = (dyry + dxrx);
+					C = dydy + dxdx - CYLINDER_RADIUS_2;
 					D = B * B - A * C;
 					if (D > 0)
 					{
-						float t = (-B - (float)sqrtf(D)) / A;
+						float t = (-B - sqrtf(D)) / A;
 						if (t > 0 && t < minT)
 						{
 							float z = oz + rz * t;
 							if (z >= gz && z <= (gz + GRID_SIZE))
 							{
-								minT = t;
-								i = ITERATIONS;
 								float ny = dy + ry * t;
 								float nx = dx + rx * t;
 								float diffuse =	(ny * LIGHT_DIRECTION_Y
 								                   + nx * LIGHT_DIRECTION_X);
-								blue = 128;
+								blue = BLUE_MIN;
 								if (diffuse > 0)
 								{
-									blue += (int)(127.0f * diffuse / CYLINDER_RADIUS);
+									blue += (int)(diffuse * (BLUE_RANGE) / CYLINDER_RADIUS);
 								}
 								red = 0;
 								green = 0;
+
+								minT = t;
 							}
 						}
 					}
 
 					// hit red sphere ?
-					B = dx * rx + dy * ry + dz * rz;
-					C = dx * dx + dy * dy + dz * dz - SPHERE_RADIUS_2;
+					B = dxrx + dyry + dzrz;
+					C = dxdx + dydy + dzdz - SPHERE_RADIUS_2;
 					D = B * B - C;
 					if (D > 0)
 					{
-						float t = -B - (float)sqrtf(D);
+						float t = -B - sqrtf(D);
 						if (t > 0 && t < minT)
 						{
-							i = ITERATIONS;
-							float nx = ox + rx * t - sx;
-							float ny = oy + ry * t - sy;
-							float nz = oz + rz * t - sz;
+							float nx = dx + rx * t;
+							float ny = dy + ry * t;
+							float nz = dz + rz * t;
 							float diffuse =	(nx * LIGHT_DIRECTION_X
 							                   + ny * LIGHT_DIRECTION_Y
 							                   + nz * LIGHT_DIRECTION_Z);
-							red = 128;
+							red = RED_MIN;
 							if (diffuse > 0)
 							{
-								red += (int)(127.0f * diffuse / SPHERE_RADIUS);
+								red += (int)(diffuse * (RED_RANGE)/ SPHERE_RADIUS);
 							}
 							green = 0;
 							blue = 0;
+
+							break;
 						}
 					}
+
+					if(minT != MAXFLOAT)
+						break;
 
 					{
 						float tx, ty, tz;
@@ -377,8 +432,28 @@ void loop()
 			}
 		}
 
-	Serial.println(millis()- startTime);
-		uvga.waitSync();
-		memcpy(UVGA_FB_START(uvga_fb, fb_row_stride), UVGA_FB_START(uvga_fb1, fb_row_stride), sizeof(uvga_fb1));
+		Serial.println(millis()- startTime);
+	
+		// fast copy back buffer to front buffer using DMA
+#if 0
+		memcpy(UVGA_FB_START(uvga_fb, fb_row_stride), UVGA_FB_START(uvga_fb1, fb_row_stride), HEIGHT * fb_row_stride);
+#else
+		cdma->SADDR = UVGA_FB_START(uvga_fb1, fb_row_stride);      // source is first line of frame buffer partially in SRAM_U
+		cdma->SOFF = 16;                                         // after each read, move source address 16 bytes forward
+		cdma->ATTR_SRC = DMA_TCD_ATTR_DSIZE(DMA_TCD_ATTR_SIZE_16BYTE);          // source data size = 16 bytes
+		cdma->NBYTES = HEIGHT*fb_row_stride;                            // each minor loop transfers 1 framebuffer line
+		cdma->SLAST = 0;
+
+		cdma->DADDR = UVGA_FB_START(uvga_fb, fb_row_stride);                        // destination is the SRAM_L buffer
+		cdma->DOFF = 16;                                         // after each write, move destination address 16 bytes forward
+		cdma->ATTR_DST = DMA_TCD_ATTR_DSIZE(DMA_TCD_ATTR_SIZE_16BYTE);          // write data size = 16 bytes
+		cdma->CITER = 1; // after each minor loop (except last one), start the 3rd DMA channel to fix DADDR of this TCD
+		cdma->DLASTSGA = 0;                         // at end of major loop, let this TCD fixes itself instead of starting the 3rd DMA channel
+		cdma->CSR = DMA_TCD_CSR_DREQ;
+		cdma->BITER = cdma->CITER;
+#endif
+		uvga.waitBeam();
+		edma->SERQ = cdma_num;
+
 	}
 }

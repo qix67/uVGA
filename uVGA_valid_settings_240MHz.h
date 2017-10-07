@@ -38,6 +38,7 @@ extern "C"
 // * UVGA_240M_703X300  (800x600@60Hz, FB resolution: 703x300), very stable but used nearly all memory
 // * UVGA_240M_452X300  (800x600@60Hz, FB resolution: 452x300), very stable
 // * UVGA_240M_452X200  (800x600@60Hz, FB resolution: 452x200), very stable
+// * UVGA_240M_452X240  (800x600@60Hz, FB resolution: 452x240), very stable
 // * UVGA_240M_560X240  (640x480@60Hz, FB resolution: 560x240), very stable
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -175,6 +176,40 @@ uVGAmodeline modeline = {
 	.dma_settings = UVGA_DMA_AUTO,
 	};
 
+#endif
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#ifdef UVGA_240M_452X240
+// 240Mhz, 800x600@60Hz, FB resolution: 452x240
+// very stable
+#pragma message "240Mhz 452x240"
+
+#define UVGA_HREZ 452
+#define UVGA_VREZ 600
+#define UVGA_RPTL 2
+#define UVGA_TOP_MARGIN 60
+#define UVGA_BOTTOM_MARGIN 60
+
+uVGAmodeline modeline = {
+   .pixel_clock = 40000000, //40MHz
+   .hres = UVGA_HREZ,
+   .hsync_start = 840,
+   .hsync_end = 968,
+   .htotal = 1056,
+   .vres = UVGA_VREZ,
+   .vsync_start = 601,
+   .vsync_end = 605,
+   .vtotal = 628,
+	.top_margin = UVGA_TOP_MARGIN,
+	.bottom_margin = UVGA_BOTTOM_MARGIN,
+   .h_polarity = UVGA_POSITIVE_POLARITY,
+   .v_polarity = UVGA_POSITIVE_POLARITY,
+   .img_color_mode = UVGA_RGB332,
+   .repeat_line = UVGA_RPTL,
+   .horizontal_position_shift = 14,
+	.pixel_h_stretch = UVGA_HSTRETCH_ULTRA_WIDE,
+	.dma_settings = UVGA_DMA_AUTO,
+	};
 #endif
 
 }
