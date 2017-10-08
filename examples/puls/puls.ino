@@ -122,6 +122,7 @@ void loop()
 	while(true)
 	{
 		//long startTime = millis();
+
 		float cosPhi = cosf(phi);
 		float sinPhi = sinf(phi);
 		float cosTheta = cosf(theta);
@@ -158,21 +159,20 @@ void loop()
 		oz += VELOCITY_Z;
 		theta += VELOCITY_THETA;
 		phi += VELOCITY_PHI;
-		/*
-				if ((++frame & 0x3F) == 0)
-				{
-					setTitle((1000 * frame) / (millis() - startTime) + " fps");
-				}
-		*/
 
-		int GX = (int)floorf(ox / GRID_SIZE) * GRID_SIZE;
-		int GY = (int)floorf(oy / GRID_SIZE) * GRID_SIZE;
-		int GZ = (int)floorf(oz / GRID_SIZE) * GRID_SIZE;
+		float GX = floorf(ox / GRID_SIZE) * GRID_SIZE;
+		float GY = floorf(oy / GRID_SIZE) * GRID_SIZE;
+		float GZ = floorf(oz / GRID_SIZE) * GRID_SIZE;
 
 #ifndef FISH_EYE_LENS
 		float Y = HEIGHT / 2  - 0.5f;
 		float YY = Y * Y;
 #endif
+
+		float oxgs2 = ox - GRID_SIZE/2;
+		float oygs2 = oy - GRID_SIZE/2;
+		float ozgs2 = oz - GRID_SIZE/2;
+
 		for(int s_h = 0; s_h < HEIGHT; s_h++)
 		{
 			uint8_t *fb = UVGA_LINE_ADDRESS(uvga_fb1, fb_row_stride, s_h);
@@ -186,13 +186,9 @@ void loop()
 			{
 				float rx, ry, rz;
 
-				uint8_t red = 0;
-				uint8_t green = 0;
-				uint8_t blue = 0;
-
-				int gx = GX;
-				int gy = GY;
-				int gz = GZ;
+				float gx = GX;
+				float gy = GY;
+				float gz = GZ;
 
 				{
 					float Rx, Ry, Rz;
@@ -220,21 +216,21 @@ void loop()
 					rz = uz * Rx + vz * Ry + wz * Rz;
 				}
 
+				float rxrx = rx * rx;
+				float ryry = ry * ry;
+				float rzrz = rz * rz;
+
+				int object_hit;			// 1= light blue cylinder, 2 = yellow cylinder, 3 = light green cylinder, 4 = red sphere
+				float diffuse_hit_t;
+				float diffuse_hit_dx;
+				float diffuse_hit_dy;
+				float diffuse_hit_dz;
+
 				for(int i = 0; i < ITERATIONS; i++)
 				{
-					float minT = MAXFLOAT;
-
-					float sx = gx + (GRID_SIZE / 2);
-					float sy = gy + (GRID_SIZE / 2);
-					float sz = gz + (GRID_SIZE / 2);
-
-					float dx = ox - sx;
-					float dy = oy - sy;
-					float dz = oz - sz;
-
-					float rxrx = rx * rx;
-					float ryry = ry * ry;
-					float rzrz = rz * rz;
+					float dx = oxgs2 - gx;
+					float dy = oygs2 - gy;
+					float dz = ozgs2 - gz;
 
 					float dxdx = dx * dx;
 					float dydy = dy * dy;
@@ -243,6 +239,13 @@ void loop()
 					float dxrx = dx * rx;
 					float dyry = dy * ry;
 					float dzrz = dz * rz;
+
+					float gxmox = gx - ox;
+					float gymoy = gy - oy;
+					float gzmoz = gz - oz;
+
+					object_hit = 0;
+					diffuse_hit_t = MAXFLOAT;
 
 					// hit light blue cylinder ?
 					{
@@ -255,21 +258,15 @@ void loop()
 							float t = -(B + sqrtf(D)) / A;
 							if (t > 0)
 							{
-								float y = oy + ry * t;
-								if (y >= gy && y <= (gy + GRID_SIZE))
+								float y = ry * t;
+								if (y >= gymoy && y <= (gymoy + GRID_SIZE))
 								{
-									float nx = dx + rx * t;
-									float nz = dz + rz * t;
-									float diffuse =	(nx * LIGHT_DIRECTION_X
-									                   + nz * LIGHT_DIRECTION_Z);
-									green = GREEN_MIN;
-									if (diffuse > 0)
-									{
-										green += (int)(diffuse * (GREEN_RANGE) / CYLINDER_RADIUS);
-									}
+									diffuse_hit_t = t;
+									diffuse_hit_dx = dx;
+									diffuse_hit_dy = dy;
+									diffuse_hit_dz = dz;
 
-									blue = 255;
-									minT = t;
+									object_hit = 1;
 								}
 							}
 						}
@@ -284,23 +281,17 @@ void loop()
 						if (D > 0)
 						{
 							float t = -(B + sqrtf(D)) / A;
-							if (t > 0 && t < minT)
+							if (t > 0 && t < diffuse_hit_t)
 							{
-								float x = ox + rx * t;
-								if (x >= gx && x <= (gx + GRID_SIZE))
+								float x = rx * t;
+								if (x >= gxmox && x <= (gxmox + GRID_SIZE))
 								{
-									float ny = dy + ry * t;
-									float nz = dz + rz * t;
-									float diffuse =	(ny * LIGHT_DIRECTION_Y
-									                   + nz * LIGHT_DIRECTION_Z);
-									red = RED_MIN;
-									if (diffuse > 0)
-									{
-										red += (int)(diffuse * (RED_RANGE) / CYLINDER_RADIUS);
-									}
-									green = red;
-									blue = 0;
-									minT = t;
+									diffuse_hit_t = t;
+									diffuse_hit_dx = dx;
+									diffuse_hit_dy = dy;
+									diffuse_hit_dz = dz;
+
+									object_hit = 2;
 								}
 							}
 						}
@@ -315,23 +306,17 @@ void loop()
 						if (D > 0)
 						{
 							float t = -(B + sqrtf(D)) / A;
-							if (t > 0 && t < minT)
+							if (t > 0 && t < diffuse_hit_t)
 							{
-								float z = oz + rz * t;
-								if (z >= gz && z <= (gz + GRID_SIZE))
+								float z = rz * t;
+								if (z >= gzmoz && z <= (gzmoz + GRID_SIZE))
 								{
-									float ny = dy + ry * t;
-									float nx = dx + rx * t;
-									float diffuse =	(ny * LIGHT_DIRECTION_Y
-									                   + nx * LIGHT_DIRECTION_X);
-									green = GREEN_MIN;
-									if (diffuse > 0)
-									{
-										green += (int)(diffuse * (GREEN_RANGE) / CYLINDER_RADIUS);
-									}
-									red = 0;
-									blue = green >> 1;
-									minT = t;
+									diffuse_hit_t = t;
+									diffuse_hit_dx = dx;
+									diffuse_hit_dy = dy;
+									diffuse_hit_dz = dz;
+
+									object_hit = 3;
 								}
 							}
 						}
@@ -345,28 +330,19 @@ void loop()
 						if (D > 0)
 						{
 							float t = -B - sqrtf(D);
-							if (t > 0 && t < minT)
+							if (t > 0 && t < diffuse_hit_t)
 							{
-								float nx = dx + rx * t;
-								float ny = dy + ry * t;
-								float nz = dz + rz * t;
-								float diffuse =	(nx * LIGHT_DIRECTION_X
-								                   + ny * LIGHT_DIRECTION_Y
-								                   + nz * LIGHT_DIRECTION_Z);
-								red = RED_MIN;
-								if (diffuse > 0)
-								{
-									red += (int)(diffuse * (RED_RANGE) / SPHERE_RADIUS);
-								}
-								green = 0;
-								blue = 0;
-
+								diffuse_hit_t = t;
+								diffuse_hit_dx = dx;
+								diffuse_hit_dy = dy;
+								diffuse_hit_dz = dz;
+								object_hit = 4;
 								break;
 							}
 						}
 					}
 
-					if(minT != MAXFLOAT)
+					if(diffuse_hit_t != MAXFLOAT)
 						break;
 
 					{
@@ -375,31 +351,23 @@ void loop()
 						tx = gx - ox;
 
 						if(rx > 0)
-						{
 							tx += GRID_SIZE;
-						}
 
 						tx /= rx;
 
 						ty = gy - oy;
 
 						if (ry > 0)
-						{
 							ty += GRID_SIZE;
-						}
 
 						ty /= ry;
-
 
 						tz = gz - oz;
 
 						if (rz > 0)
-						{
 							tz += GRID_SIZE;
-						}
 
 						tz /= rz;
-
 
 						if (tx < ty)
 						{
@@ -435,10 +403,74 @@ void loop()
 					}
 				}
 
-				green = (green >> 5) & 0x7;
-				blue = (blue >> 6) & 0x3;
+				{
+					uint8_t red = 0;
+					uint8_t green = 0;
+					uint8_t blue = 0;
+					float diffuse_hit;
+					float nx, ny ,nz;
 
-				*fb++ = (red & (0x7 << 5)) | (green << 2) | blue;
+					switch(object_hit)
+					{
+						case 1:	// hit light blue cylinder ?
+									nx = diffuse_hit_dx + rx * diffuse_hit_t;
+									nz = diffuse_hit_dz + rz * diffuse_hit_t;
+									diffuse_hit =	(nx * LIGHT_DIRECTION_X + nz * LIGHT_DIRECTION_Z);
+
+									red = 0;
+									green = GREEN_MIN;
+									if(diffuse_hit > 0)
+										green += (int)(diffuse_hit * (GREEN_RANGE) / CYLINDER_RADIUS);
+
+									blue = 255;
+									break;
+
+						case 2:	// hit yellow cylinder ?
+									ny = diffuse_hit_dy + ry * diffuse_hit_t;
+									nz = diffuse_hit_dz + rz * diffuse_hit_t;
+									diffuse_hit =	(ny * LIGHT_DIRECTION_Y + nz * LIGHT_DIRECTION_Z);
+
+									red = RED_MIN;
+									if(diffuse_hit > 0)
+										red += (int)(diffuse_hit * (RED_RANGE) / CYLINDER_RADIUS);
+
+									green = red;
+									blue = 0;
+									break;
+
+						case 3:	// hit light green cylinder ?
+									ny = diffuse_hit_dy + ry * diffuse_hit_t;
+									nx = diffuse_hit_dx + rx * diffuse_hit_t;
+									diffuse_hit =	(ny * LIGHT_DIRECTION_Y + nx * LIGHT_DIRECTION_X);
+
+									red = 0;
+									green = GREEN_MIN;
+									if (diffuse_hit > 0)
+										green += (int)(diffuse_hit * (GREEN_RANGE) / CYLINDER_RADIUS);
+
+									blue = green >> 1;
+									break;
+
+						case 4:	// hit red sphere ?
+									nx = diffuse_hit_dx + rx * diffuse_hit_t;
+									ny = diffuse_hit_dy + ry * diffuse_hit_t;
+									nz = diffuse_hit_dz + rz * diffuse_hit_t;
+
+									diffuse_hit =	(nx * LIGHT_DIRECTION_X + ny * LIGHT_DIRECTION_Y + nz * LIGHT_DIRECTION_Z);
+									red = RED_MIN;
+									if (diffuse_hit > 0)
+										red += (int)(diffuse_hit * (RED_RANGE) / SPHERE_RADIUS);
+
+									green = 0;
+									blue = 0;
+									break;
+					}
+
+					green = (green >> 5) & 0x7;
+					blue = (blue >> 6) & 0x3;
+
+					*fb++ = (red & (0x7 << 5)) | (green << 2) | blue;
+				}
 #ifndef FISH_EYE_LENS
 				X++;
 				XX = X * X;
