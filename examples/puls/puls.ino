@@ -116,12 +116,13 @@ void loop()
 	memset(uvga_fb1, 0, sizeof(uvga_fb1));
 
 #ifdef FISH_EYE_LENS
-	float MAX = MATH_MAX(WIDTH, HEIGHT);
+	float inv_MAX = 1.0f / MATH_MAX(WIDTH, HEIGHT);
 #endif
 
 	while(true)
 	{
-		long startTime = millis();
+		//long startTime = millis();
+		float LIGHT_DIRECTION_X, LIGHT_DIRECTION_Y, LIGHT_DIRECTION_Z;
 
 		float cosPhi = cosf(phi);
 		float sinPhi = sinf(phi);
@@ -140,10 +141,6 @@ void loop()
 		float wy = uz * vx - ux * vz;
 		float wz = ux * vy - uy * vx;
 
-		float LIGHT_DIRECTION_X = wx;
-		float LIGHT_DIRECTION_Y = wy;
-		float LIGHT_DIRECTION_Z = wz;
-
 #ifdef FISH_EYE_LENS
 		LIGHT_DIRECTION_X = -vx;
 		LIGHT_DIRECTION_Y = -vy;
@@ -152,6 +149,10 @@ void loop()
 		float X_OFFSET = WIDTH < HEIGHT ? (HEIGHT - WIDTH) / 2 : 0;
 		float Y_OFFSET = HEIGHT < WIDTH ? (WIDTH - HEIGHT) / 2 : 0;
 
+#else
+		LIGHT_DIRECTION_X = wx;
+		LIGHT_DIRECTION_Y = wy;
+		LIGHT_DIRECTION_Z = wz;
 #endif
 
 		ox += VELOCITY_X;
@@ -166,7 +167,6 @@ void loop()
 
 #ifndef FISH_EYE_LENS
 		float Y = HEIGHT / 2  - 0.5f;
-		float YY = Y * Y;
 #endif
 
 		float oxgs2 = ox - GRID_SIZE/2;
@@ -196,19 +196,21 @@ void loop()
 
 #ifdef FISH_EYE_LENS
 					{
-						float theta = (float)(PI * (0.5f + s_h + Y_OFFSET) / (float)MAX);
-						float phi = (float)(PI * (0.5f + s_w + X_OFFSET) / (float)MAX);
+						float theta = (float)(PI * (0.5f + s_h + Y_OFFSET) * inv_MAX);
+						float phi = (float)(PI * (0.5f + s_w + X_OFFSET) * inv_MAX);
 						Rx = (float)(cosf(phi) * sinf(theta));
 						Ry = (float)(sinf(phi) * sinf(theta));
 						Rz = (float)(cosf(theta));
 					}
 #else
 					{
-						float Mag = sqrtf(XX + YY + Z0 * Z0);
+						// division is a lot slower than multiplication, precompute the result and store it outside of ITERATION loop
+						// precomputing Y*Y wastes ressource. Y*Y+Z0*Z0 (Z0 is a constant) is faster due to FMAC instruction
+						float inv_Mag = 1.0f / sqrtf(XX + Y * Y + Z0 * Z0);
 
-						Rx = X / Mag;
-						Ry = Y / Mag;
-						Rz = -Z0 / Mag;
+						Rx = X * inv_Mag;
+						Ry = Y * inv_Mag;
+						Rz = -Z0 * inv_Mag;
 					}
 #endif
 
@@ -239,11 +241,12 @@ void loop()
 					float dz = ozgs2 - gz;
 
 					float dxdx = dx * dx;
-					float dydy = dy * dy;
-					float dzdz = dz * dz;
-
 					float dxrx = dx * rx;
+
+					float dydy = dy * dy;
 					float dyry = dy * ry;
+
+					float dzdz = dz * dz;
 					float dzrz = dz * rz;
 
 					float gxmox = gx - ox;
@@ -474,11 +477,10 @@ void loop()
 			}
 #ifndef FISH_EYE_LENS
 			Y--;
-			YY = Y * Y;
 #endif
 		}
 
-		Serial.println(millis() - startTime);
+		//Serial.println(millis() - startTime);
 
 		// fast copy back buffer to front buffer using DMA
 #if 0
