@@ -121,7 +121,7 @@ void loop()
 
 	while(true)
 	{
-		//long startTime = millis();
+		long startTime = millis();
 
 		float cosPhi = cosf(phi);
 		float sinPhi = sinf(phi);
@@ -185,6 +185,7 @@ void loop()
 			for(int s_w = 0; s_w < WIDTH; s_w++)
 			{
 				float rx, ry, rz;
+				float inv_rx, inv_ry, inv_rz;
 
 				float gx = GX;
 				float gy = GY;
@@ -214,13 +215,18 @@ void loop()
 					rx = ux * Rx + vx * Ry + wx * Rz;
 					ry = uy * Rx + vy * Ry + wy * Rz;
 					rz = uz * Rx + vz * Ry + wz * Rz;
+
+					// division is a lot slower than multiplication, precompute the result and store it outside of ITERATION loop
+					inv_rx = 1.0f / rx;
+					inv_ry = 1.0f / ry;
+					inv_rz = 1.0f / rz;
 				}
 
 				float rxrx = rx * rx;
 				float ryry = ry * ry;
 				float rzrz = rz * rz;
 
-				int object_hit;			// 1= light blue cylinder, 2 = yellow cylinder, 3 = light green cylinder, 4 = red sphere
+				short object_hit;			// 1= light blue cylinder, 2 = yellow cylinder, 3 = light green cylinder, 4 = red sphere
 				float diffuse_hit_t;
 				float diffuse_hit_dx;
 				float diffuse_hit_dy;
@@ -345,53 +351,29 @@ void loop()
 					if(diffuse_hit_t != MAXFLOAT)
 						break;
 
+					if(rx > 0)
+						gxmox += GRID_SIZE;
+
+					gxmox *= inv_rx;
+
+					if (ry > 0)
+						gymoy += GRID_SIZE;
+
+					gymoy *= inv_ry;
+
+					if (rz > 0)
+						gzmoz += GRID_SIZE;
+
+					gzmoz *= inv_rz;
+
+					if (gxmox < gymoy)
 					{
-						float tx, ty, tz;
-
-						tx = gx - ox;
-
-						if(rx > 0)
-							tx += GRID_SIZE;
-
-						tx /= rx;
-
-						ty = gy - oy;
-
-						if (ry > 0)
-							ty += GRID_SIZE;
-
-						ty /= ry;
-
-						tz = gz - oz;
-
-						if (rz > 0)
-							tz += GRID_SIZE;
-
-						tz /= rz;
-
-						if (tx < ty)
+						if (gxmox < gzmoz)
 						{
-							if (tx < tz)
-							{
-								if(rx > 0)
-									gx += GRID_SIZE;
-								else
-									gx -= GRID_SIZE;
-							}
+							if(rx > 0)
+								gx += GRID_SIZE;
 							else
-							{
-								if(rz > 0)
-									gz += GRID_SIZE;
-								else
-									gz -= GRID_SIZE;
-							}
-						}
-						else if (ty < tz)
-						{
-							if(ry > 0)
-								gy += GRID_SIZE;
-							else
-								gy -= GRID_SIZE;
+								gx -= GRID_SIZE;
 						}
 						else
 						{
@@ -400,6 +382,20 @@ void loop()
 							else
 								gz -= GRID_SIZE;
 						}
+					}
+					else if (gymoy < gzmoz)
+					{
+						if(ry > 0)
+							gy += GRID_SIZE;
+						else
+							gy -= GRID_SIZE;
+					}
+					else
+					{
+						if(rz > 0)
+							gz += GRID_SIZE;
+						else
+							gz -= GRID_SIZE;
 					}
 				}
 
@@ -482,7 +478,7 @@ void loop()
 #endif
 		}
 
-		//Serial.println(millis() - startTime);
+		Serial.println(millis() - startTime);
 
 		// fast copy back buffer to front buffer using DMA
 #if 0
