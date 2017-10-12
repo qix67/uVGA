@@ -117,7 +117,7 @@ void loop()
 
 	while(true)
 	{
-		long startTime = millis();
+		//long startTime = millis();
 		float LIGHT_DIRECTION_X, LIGHT_DIRECTION_Y, LIGHT_DIRECTION_Z;
 
 		float cosPhi = cosf(phi);
@@ -161,7 +161,7 @@ void loop()
 		float Y = HEIGHT / 2  - 0.5f;
 #endif
 
-		float oygs2 = oy - GRID_SIZE/2;
+		float oygs2 = oy - GRID_SIZE / 2;
 
 		for(int s_h = 0; s_h < HEIGHT; s_h++)
 		{
@@ -224,25 +224,16 @@ void loop()
 				float diffuse_hit_dy;
 				float diffuse_hit_dz;
 
-				float dx = -GRID_SIZE/2;
-				float dz = -GRID_SIZE/2;
-
-				float dxdx = dx * dx;
-				float dxrx = dx * rx;
-
-				float dzdz = dz * dz;
-				float dzrz = dz * rz;
-
-				for(int i = 0; i < ITERATIONS; i++)
+				// first iteration can be optimized
 				{
-					float dy = oygs2 - gy;
+					diffuse_hit_dx = -GRID_SIZE / 2;
+					diffuse_hit_dy = oygs2 - gy;
+					diffuse_hit_dz = -GRID_SIZE / 2;
 
-					float dydy = dy * dy;
-					float dyry = dy * ry;
+					float dydy = diffuse_hit_dy * diffuse_hit_dy;
+					float dyry = diffuse_hit_dy * ry;
 
-					float gxmox = gx;
 					float gymoy = gy - oy;
-					float gzmoz = gz;
 
 					object_hit = 0;
 					diffuse_hit_t = MAXFLOAT;
@@ -250,8 +241,8 @@ void loop()
 					// hit light blue cylinder ?
 					{
 						float A = rxrx + rzrz;
-						float B = (dxrx + dzrz);
-						float C = dxdx + dzdz - CYLINDER_RADIUS_2;
+						float B = (-GRID_SIZE / 2 * rx + -GRID_SIZE / 2 * rz);
+						float C = -GRID_SIZE / 2 * -GRID_SIZE / 2 + -GRID_SIZE / 2 * -GRID_SIZE / 2 - CYLINDER_RADIUS_2;
 						float D = B * B - A * C;
 						if (D > 0)
 						{
@@ -262,10 +253,6 @@ void loop()
 								if (y >= gymoy && y <= (gymoy + GRID_SIZE))
 								{
 									diffuse_hit_t = t;
-									diffuse_hit_dx = dx;
-									diffuse_hit_dy = dy;
-									diffuse_hit_dz = dz;
-
 									object_hit = 1;
 								}
 							}
@@ -275,8 +262,8 @@ void loop()
 					// hit yellow cylinder ?
 					{
 						float A = ryry + rzrz;
-						float B = (dyry + dzrz);
-						float C = dydy + dzdz - CYLINDER_RADIUS_2;
+						float B = (dyry + -GRID_SIZE / 2 * rz);
+						float C = dydy + -GRID_SIZE / 2 * -GRID_SIZE / 2 - CYLINDER_RADIUS_2;
 						float D = B * B - A * C;
 						if (D > 0)
 						{
@@ -284,13 +271,9 @@ void loop()
 							if (t > 0 && t < diffuse_hit_t)
 							{
 								float x = rx * t;
-								if (x >= gxmox && x <= (gxmox + GRID_SIZE))
+								if (x >= 0 && x <= GRID_SIZE)
 								{
 									diffuse_hit_t = t;
-									diffuse_hit_dx = dx;
-									diffuse_hit_dy = dy;
-									diffuse_hit_dz = dz;
-
 									object_hit = 2;
 								}
 							}
@@ -300,8 +283,8 @@ void loop()
 					// hit light green cylinder ?
 					{
 						float A = ryry + rxrx;
-						float B = (dyry + dxrx);
-						float C = dydy + dxdx - CYLINDER_RADIUS_2;
+						float B = (dyry + -GRID_SIZE / 2 * rx);
+						float C = dydy + -GRID_SIZE / 2 * -GRID_SIZE / 2 - CYLINDER_RADIUS_2;
 						float D = B * B - A * C;
 						if (D > 0)
 						{
@@ -309,13 +292,9 @@ void loop()
 							if (t > 0 && t < diffuse_hit_t)
 							{
 								float z = rz * t;
-								if (z >= gzmoz && z <= (gzmoz + GRID_SIZE))
+								if (z >= 0 && z <= GRID_SIZE)
 								{
 									diffuse_hit_t = t;
-									diffuse_hit_dx = dx;
-									diffuse_hit_dy = dy;
-									diffuse_hit_dz = dz;
-
 									object_hit = 3;
 								}
 							}
@@ -324,8 +303,8 @@ void loop()
 
 					// hit red sphere ?
 					{
-						float B = dxrx + dyry + dzrz;
-						float C = dxdx + dydy + dzdz - SPHERE_RADIUS_2;
+						float B = -GRID_SIZE / 2 * rx + dyry + -GRID_SIZE / 2 * rz;
+						float C = -GRID_SIZE / 2 * -GRID_SIZE / 2 + dydy + -GRID_SIZE / 2 * -GRID_SIZE / 2 - SPHERE_RADIUS_2;
 						float D = B * B - C;
 						if (D > 0)
 						{
@@ -333,22 +312,26 @@ void loop()
 							if (t > 0 && t < diffuse_hit_t)
 							{
 								diffuse_hit_t = t;
-								diffuse_hit_dx = dx;
-								diffuse_hit_dy = dy;
-								diffuse_hit_dz = dz;
 								object_hit = 4;
-								break;
 							}
 						}
 					}
+				}
 
-					if(diffuse_hit_t != MAXFLOAT)
-						break;
+				if(!object_hit)
+				{
+					float dxdx = -GRID_SIZE / 2 * -GRID_SIZE / 2;
+					float dxrx = -GRID_SIZE / 2 * rx;
+
+					float dzdz = -GRID_SIZE / 2 * -GRID_SIZE / 2;
+					float dzrz = -GRID_SIZE / 2 * rz;
+
+					float gxmox = 0;
+					float gymoy = gy - oy;
+					float gzmoz = 0;
 
 					if(rx > 0)
-						gxmox += GRID_SIZE;
-
-					gxmox *= inv_rx;
+						gxmox = GRID_SIZE * inv_rx;
 
 					if (ry > 0)
 						gymoy += GRID_SIZE;
@@ -356,35 +339,33 @@ void loop()
 					gymoy *= inv_ry;
 
 					if (rz > 0)
-						gzmoz += GRID_SIZE;
-
-					gzmoz *= inv_rz;
+						gzmoz = GRID_SIZE * inv_rz;
 
 					if (gxmox < gymoy)
 					{
 						if (gxmox < gzmoz)
 						{
 							if(rx > 0)
-								gx += GRID_SIZE;
+								gx = GRID_SIZE;
 							else
-								gx -= GRID_SIZE;
+								gx = -GRID_SIZE;
 
-							dx = -GRID_SIZE/2 - gx;
+							diffuse_hit_dx = -GRID_SIZE / 2 - gx;
 
-							dxdx = dx * dx;
-							dxrx = dx * rx;
+							dxdx = diffuse_hit_dx * diffuse_hit_dx;
+							dxrx = diffuse_hit_dx * rx;
 						}
 						else
 						{
 							if(rz > 0)
-								gz += GRID_SIZE;
+								gz = GRID_SIZE;
 							else
-								gz -= GRID_SIZE;
+								gz = -GRID_SIZE;
 
-							dz = -GRID_SIZE/2 - gz;
+							diffuse_hit_dz = -GRID_SIZE / 2 - gz;
 
-							dzdz = dz * dz;
-							dzrz = dz * rz;
+							dzdz = diffuse_hit_dz * diffuse_hit_dz;
+							dzrz = diffuse_hit_dz * rz;
 						}
 					}
 					else if (gymoy < gzmoz)
@@ -397,14 +378,171 @@ void loop()
 					else
 					{
 						if(rz > 0)
-							gz += GRID_SIZE;
+							gz = GRID_SIZE;
 						else
-							gz -= GRID_SIZE;
+							gz = -GRID_SIZE;
 
-						dz = -GRID_SIZE/2 - gz;
+						diffuse_hit_dz = -GRID_SIZE / 2 - gz;
 
-						dzdz = dz * dz;
-						dzrz = dz * rz;
+						dzdz = diffuse_hit_dz * diffuse_hit_dz;
+						dzrz = diffuse_hit_dz * rz;
+					}
+
+					for(int i = 1; i < ITERATIONS; i++)
+					{
+						diffuse_hit_dy = oygs2 - gy;
+
+						float dydy = diffuse_hit_dy * diffuse_hit_dy;
+						float dyry = diffuse_hit_dy * ry;
+
+						gxmox = gx;
+						gymoy = gy - oy;
+						gzmoz = gz;
+
+						// hit light blue cylinder ?
+						{
+							float A = rxrx + rzrz;
+							float B = (dxrx + dzrz);
+							float C = dxdx + dzdz - CYLINDER_RADIUS_2;
+							float D = B * B - A * C;
+							if (D > 0)
+							{
+								float t = -(B + sqrtf(D)) / A;
+								if (t > 0)
+								{
+									float y = ry * t;
+									if (y >= gymoy && y <= (gymoy + GRID_SIZE))
+									{
+										diffuse_hit_t = t;
+										object_hit = 1;
+									}
+								}
+							}
+						}
+
+						// hit yellow cylinder ?
+						{
+							float A = ryry + rzrz;
+							float B = (dyry + dzrz);
+							float C = dydy + dzdz - CYLINDER_RADIUS_2;
+							float D = B * B - A * C;
+							if (D > 0)
+							{
+								float t = -(B + sqrtf(D)) / A;
+								if (t > 0 && t < diffuse_hit_t)
+								{
+									float x = rx * t;
+									if (x >= gxmox && x <= (gxmox + GRID_SIZE))
+									{
+										diffuse_hit_t = t;
+										object_hit = 2;
+									}
+								}
+							}
+						}
+
+						// hit light green cylinder ?
+						{
+							float A = ryry + rxrx;
+							float B = (dyry + dxrx);
+							float C = dydy + dxdx - CYLINDER_RADIUS_2;
+							float D = B * B - A * C;
+							if (D > 0)
+							{
+								float t = -(B + sqrtf(D)) / A;
+								if (t > 0 && t < diffuse_hit_t)
+								{
+									float z = rz * t;
+									if (z >= gzmoz && z <= (gzmoz + GRID_SIZE))
+									{
+										diffuse_hit_t = t;
+										object_hit = 3;
+									}
+								}
+							}
+						}
+
+						// hit red sphere ?
+						{
+							float B = dxrx + dyry + dzrz;
+							float C = dxdx + dydy + dzdz - SPHERE_RADIUS_2;
+							float D = B * B - C;
+							if (D > 0)
+							{
+								float t = -B - sqrtf(D);
+								if (t > 0 && t < diffuse_hit_t)
+								{
+									diffuse_hit_t = t;
+									object_hit = 4;
+									break;
+								}
+							}
+						}
+
+						if(diffuse_hit_t != MAXFLOAT)
+							break;
+
+						if(rx > 0)
+							gxmox += GRID_SIZE;
+
+						gxmox *= inv_rx;
+
+						if (ry > 0)
+							gymoy += GRID_SIZE;
+
+						gymoy *= inv_ry;
+
+						if (rz > 0)
+							gzmoz += GRID_SIZE;
+
+						gzmoz *= inv_rz;
+
+						if (gxmox < gymoy)
+						{
+							if (gxmox < gzmoz)
+							{
+								if(rx > 0)
+									gx += GRID_SIZE;
+								else
+									gx -= GRID_SIZE;
+
+								diffuse_hit_dx = -GRID_SIZE / 2 - gx;
+
+								dxdx = diffuse_hit_dx * diffuse_hit_dx;
+								dxrx = diffuse_hit_dx * rx;
+							}
+							else
+							{
+								if(rz > 0)
+									gz += GRID_SIZE;
+								else
+									gz -= GRID_SIZE;
+
+								diffuse_hit_dz = -GRID_SIZE / 2 - gz;
+
+								dzdz = diffuse_hit_dz * diffuse_hit_dz;
+								dzrz = diffuse_hit_dz * rz;
+							}
+						}
+						else if (gymoy < gzmoz)
+						{
+							if(ry > 0)
+								gy += GRID_SIZE;
+							else
+								gy -= GRID_SIZE;
+						}
+						else
+						{
+							if(rz > 0)
+								gz += GRID_SIZE;
+							else
+								gz -= GRID_SIZE;
+
+							diffuse_hit_dz = -GRID_SIZE / 2 - gz;
+
+							dzdz = diffuse_hit_dz * diffuse_hit_dz;
+							dzrz = diffuse_hit_dz * rz;
+						}
 					}
 				}
 
@@ -413,62 +551,62 @@ void loop()
 					uint8_t green = 0;
 					uint8_t blue = 0;
 					float diffuse_hit;
-					float nx, ny ,nz;
+					float nx, ny, nz;
 
 					switch(object_hit)
 					{
-						case 1:	// hit light blue cylinder ?
-									nx = diffuse_hit_dx + rx * diffuse_hit_t;
-									nz = diffuse_hit_dz + rz * diffuse_hit_t;
-									diffuse_hit =	(nx * LIGHT_DIRECTION_X + nz * LIGHT_DIRECTION_Z);
+					case 1:	// hit light blue cylinder ?
+						nx = diffuse_hit_dx + rx * diffuse_hit_t;
+						nz = diffuse_hit_dz + rz * diffuse_hit_t;
+						diffuse_hit =	(nx * LIGHT_DIRECTION_X + nz * LIGHT_DIRECTION_Z);
 
-									red = 0;
-									green = GREEN_MIN;
-									if(diffuse_hit > 0)
-										green += (int)(diffuse_hit * (GREEN_RANGE) / CYLINDER_RADIUS);
+						red = 0;
+						green = GREEN_MIN;
+						if(diffuse_hit > 0)
+							green += (int)(diffuse_hit * (GREEN_RANGE) / CYLINDER_RADIUS);
 
-									blue = 255;
-									break;
+						blue = 255;
+						break;
 
-						case 2:	// hit yellow cylinder ?
-									ny = diffuse_hit_dy + ry * diffuse_hit_t;
-									nz = diffuse_hit_dz + rz * diffuse_hit_t;
-									diffuse_hit =	(ny * LIGHT_DIRECTION_Y + nz * LIGHT_DIRECTION_Z);
+					case 2:	// hit yellow cylinder ?
+						ny = diffuse_hit_dy + ry * diffuse_hit_t;
+						nz = diffuse_hit_dz + rz * diffuse_hit_t;
+						diffuse_hit =	(ny * LIGHT_DIRECTION_Y + nz * LIGHT_DIRECTION_Z);
 
-									red = RED_MIN;
-									if(diffuse_hit > 0)
-										red += (int)(diffuse_hit * (RED_RANGE) / CYLINDER_RADIUS);
+						red = RED_MIN;
+						if(diffuse_hit > 0)
+							red += (int)(diffuse_hit * (RED_RANGE) / CYLINDER_RADIUS);
 
-									green = red;
-									blue = 0;
-									break;
+						green = red;
+						blue = 0;
+						break;
 
-						case 3:	// hit light green cylinder ?
-									ny = diffuse_hit_dy + ry * diffuse_hit_t;
-									nx = diffuse_hit_dx + rx * diffuse_hit_t;
-									diffuse_hit =	(ny * LIGHT_DIRECTION_Y + nx * LIGHT_DIRECTION_X);
+					case 3:	// hit light green cylinder ?
+						ny = diffuse_hit_dy + ry * diffuse_hit_t;
+						nx = diffuse_hit_dx + rx * diffuse_hit_t;
+						diffuse_hit =	(ny * LIGHT_DIRECTION_Y + nx * LIGHT_DIRECTION_X);
 
-									red = 0;
-									green = GREEN_MIN;
-									if (diffuse_hit > 0)
-										green += (int)(diffuse_hit * (GREEN_RANGE) / CYLINDER_RADIUS);
+						red = 0;
+						green = GREEN_MIN;
+						if (diffuse_hit > 0)
+							green += (int)(diffuse_hit * (GREEN_RANGE) / CYLINDER_RADIUS);
 
-									blue = green >> 1;
-									break;
+						blue = green >> 1;
+						break;
 
-						case 4:	// hit red sphere ?
-									nx = diffuse_hit_dx + rx * diffuse_hit_t;
-									ny = diffuse_hit_dy + ry * diffuse_hit_t;
-									nz = diffuse_hit_dz + rz * diffuse_hit_t;
+					case 4:	// hit red sphere ?
+						nx = diffuse_hit_dx + rx * diffuse_hit_t;
+						ny = diffuse_hit_dy + ry * diffuse_hit_t;
+						nz = diffuse_hit_dz + rz * diffuse_hit_t;
 
-									diffuse_hit =	(nx * LIGHT_DIRECTION_X + ny * LIGHT_DIRECTION_Y + nz * LIGHT_DIRECTION_Z);
-									red = RED_MIN;
-									if (diffuse_hit > 0)
-										red += (int)(diffuse_hit * (RED_RANGE) / SPHERE_RADIUS);
+						diffuse_hit =	(nx * LIGHT_DIRECTION_X + ny * LIGHT_DIRECTION_Y + nz * LIGHT_DIRECTION_Z);
+						red = RED_MIN;
+						if (diffuse_hit > 0)
+							red += (int)(diffuse_hit * (RED_RANGE) / SPHERE_RADIUS);
 
-									green = 0;
-									blue = 0;
-									break;
+						green = 0;
+						blue = 0;
+						break;
 					}
 
 					green = (green >> 5) & 0x7;
@@ -486,23 +624,23 @@ void loop()
 #endif
 		}
 
-		Serial.println(millis() - startTime);
+		//Serial.println(millis() - startTime);
 
 		// fast copy back buffer to front buffer using DMA
 #if 0
 		memcpy(UVGA_FB_START(uvga_fb, fb_row_stride), UVGA_FB_START(uvga_fb1, fb_row_stride), HEIGHT * fb_row_stride);
 #else
-		cdma->SADDR = UVGA_FB_START(uvga_fb1, fb_row_stride);      // source is first line of frame buffer partially in SRAM_U
-		cdma->SOFF = 16;                                         // after each read, move source address 16 bytes forward
-		cdma->ATTR_SRC = DMA_TCD_ATTR_DSIZE(DMA_TCD_ATTR_SIZE_16BYTE);          // source data size = 16 bytes
-		cdma->NBYTES = HEIGHT * fb_row_stride;                          // each minor loop transfers 1 framebuffer line
+		cdma->SADDR = UVGA_FB_START(uvga_fb1, fb_row_stride);		// source is first line of frame buffer partially in SRAM_U
+		cdma->SOFF = 16;													  // after each read, move source address 16 bytes forward
+		cdma->ATTR_SRC = DMA_TCD_ATTR_DSIZE(DMA_TCD_ATTR_SIZE_16BYTE);			 // source data size = 16 bytes
+		cdma->NBYTES = HEIGHT * fb_row_stride;								  // each minor loop transfers 1 framebuffer line
 		cdma->SLAST = 0;
 
-		cdma->DADDR = UVGA_FB_START(uvga_fb, fb_row_stride);                        // destination is the SRAM_L buffer
-		cdma->DOFF = 16;                                         // after each write, move destination address 16 bytes forward
-		cdma->ATTR_DST = DMA_TCD_ATTR_DSIZE(DMA_TCD_ATTR_SIZE_16BYTE);          // write data size = 16 bytes
+		cdma->DADDR = UVGA_FB_START(uvga_fb, fb_row_stride);								// destination is the SRAM_L buffer
+		cdma->DOFF = 16;													  // after each write, move destination address 16 bytes forward
+		cdma->ATTR_DST = DMA_TCD_ATTR_DSIZE(DMA_TCD_ATTR_SIZE_16BYTE);			 // write data size = 16 bytes
 		cdma->CITER = 1; // after each minor loop (except last one), start the 3rd DMA channel to fix DADDR of this TCD
-		cdma->DLASTSGA = 0;                         // at end of major loop, let this TCD fixes itself instead of starting the 3rd DMA channel
+		cdma->DLASTSGA = 0;								 // at end of major loop, let this TCD fixes itself instead of starting the 3rd DMA channel
 		cdma->CSR = DMA_TCD_CSR_DREQ;
 		cdma->BITER = cdma->CITER;
 #endif
