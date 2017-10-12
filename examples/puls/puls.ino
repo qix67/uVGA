@@ -73,9 +73,7 @@ void setup()
 #define SPHERE_RADIUS 64.0f
 #define CYLINDER_RADIUS 16.0f
 #define Z0 320.0f
-#define VELOCITY_X 0.0f
 #define VELOCITY_Y -20.0f
-#define VELOCITY_Z 0.0f
 #define VELOCITY_THETA 0.002f
 #define VELOCITY_PHI 0.004f
 
@@ -95,9 +93,7 @@ void setup()
 
 #define MATH_MAX(x,y)		((x) > (y) ? (x) : (y))
 
-float ox = 0;
 float oy = 0;
-float oz = 0;
 
 float phi = 0;
 float theta = 0;
@@ -121,7 +117,7 @@ void loop()
 
 	while(true)
 	{
-		//long startTime = millis();
+		long startTime = millis();
 		float LIGHT_DIRECTION_X, LIGHT_DIRECTION_Y, LIGHT_DIRECTION_Z;
 
 		float cosPhi = cosf(phi);
@@ -155,23 +151,17 @@ void loop()
 		LIGHT_DIRECTION_Z = wz;
 #endif
 
-		ox += VELOCITY_X;
 		oy += VELOCITY_Y;
-		oz += VELOCITY_Z;
 		theta += VELOCITY_THETA;
 		phi += VELOCITY_PHI;
 
-		float GX = floorf(ox / GRID_SIZE) * GRID_SIZE;
 		float GY = floorf(oy / GRID_SIZE) * GRID_SIZE;
-		float GZ = floorf(oz / GRID_SIZE) * GRID_SIZE;
 
 #ifndef FISH_EYE_LENS
 		float Y = HEIGHT / 2  - 0.5f;
 #endif
 
-		float oxgs2 = ox - GRID_SIZE/2;
 		float oygs2 = oy - GRID_SIZE/2;
-		float ozgs2 = oz - GRID_SIZE/2;
 
 		for(int s_h = 0; s_h < HEIGHT; s_h++)
 		{
@@ -187,9 +177,9 @@ void loop()
 				float rx, ry, rz;
 				float inv_rx, inv_ry, inv_rz;
 
-				float gx = GX;
+				float gx = 0;
 				float gy = GY;
-				float gz = GZ;
+				float gz = 0;
 
 				{
 					float Rx, Ry, Rz;
@@ -234,24 +224,25 @@ void loop()
 				float diffuse_hit_dy;
 				float diffuse_hit_dz;
 
+				float dx = -GRID_SIZE/2;
+				float dz = -GRID_SIZE/2;
+
+				float dxdx = dx * dx;
+				float dxrx = dx * rx;
+
+				float dzdz = dz * dz;
+				float dzrz = dz * rz;
+
 				for(int i = 0; i < ITERATIONS; i++)
 				{
-					float dx = oxgs2 - gx;
 					float dy = oygs2 - gy;
-					float dz = ozgs2 - gz;
-
-					float dxdx = dx * dx;
-					float dxrx = dx * rx;
 
 					float dydy = dy * dy;
 					float dyry = dy * ry;
 
-					float dzdz = dz * dz;
-					float dzrz = dz * rz;
-
-					float gxmox = gx - ox;
+					float gxmox = gx;
 					float gymoy = gy - oy;
-					float gzmoz = gz - oz;
+					float gzmoz = gz;
 
 					object_hit = 0;
 					diffuse_hit_t = MAXFLOAT;
@@ -377,6 +368,11 @@ void loop()
 								gx += GRID_SIZE;
 							else
 								gx -= GRID_SIZE;
+
+							dx = -GRID_SIZE/2 - gx;
+
+							dxdx = dx * dx;
+							dxrx = dx * rx;
 						}
 						else
 						{
@@ -384,6 +380,11 @@ void loop()
 								gz += GRID_SIZE;
 							else
 								gz -= GRID_SIZE;
+
+							dz = -GRID_SIZE/2 - gz;
+
+							dzdz = dz * dz;
+							dzrz = dz * rz;
 						}
 					}
 					else if (gymoy < gzmoz)
@@ -399,6 +400,11 @@ void loop()
 							gz += GRID_SIZE;
 						else
 							gz -= GRID_SIZE;
+
+						dz = -GRID_SIZE/2 - gz;
+
+						dzdz = dz * dz;
+						dzrz = dz * rz;
 					}
 				}
 
@@ -480,7 +486,7 @@ void loop()
 #endif
 		}
 
-		//Serial.println(millis() - startTime);
+		Serial.println(millis() - startTime);
 
 		// fast copy back buffer to front buffer using DMA
 #if 0
