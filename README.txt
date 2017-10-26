@@ -147,6 +147,47 @@ void uvga.set_static_framebuffer(uint8_t *static_frame_buffer)
    UVGA_STATIC_FRAME_BUFFER(your_frame_buffer_name_here);
 
 
+void uvga.trigger_dma_channel(uvga_trigger_location_t location, short int dma_channel_num)
+
+  Start a DMA channel automatically when a specific location is reached on screen.
+
+  If used, this function MUST be called before uvga.begin call.
+
+  Possible locations are:
+    * UVGA_TRIGGER_LOCATION_END_OF_VGA_LINE
+          immediately after the last pixel of each image line. If the next line
+          is stored in SRAM_U, the DMA will be started after DMA channel copying
+          the line from SRAM_U to SRAM_L buffer
+
+    * UVGA_TRIGGER_LOCATION_END_OF_VGA_IMAGE
+          immediately after the last pixel of last image line.
+
+    * UVGA_TRIGGER_LOCATION_START_OF_VGA_IMAGE
+          before the first pixel of first image line. Warning the coordinates of the trigger is
+          NOT x = -1, y = 0 (the "pixel" on the left of the first pixel of the image) but
+          x = 0, y = -1 (the "pixel" above the first pixel of the image) which is technically the
+          last time the VSync TCD is called.
+
+  If both UVGA_TRIGGER_LOCATION_END_OF_VGA_LINE and UVGA_TRIGGER_LOCATION_END_OF_VGA_LINE
+  are used, on the last line, only DMA channel specified by UVGA_TRIGGER_LOCATION_END_OF_VGA_LINE
+  will be trigger. The solution is to let this end of image DMA channel trigger end of line
+  DMA channel.
+
+  Usage restriction:
+    * UVGA_TRIGGER_LOCATION_END_OF_VGA_LINE
+       not yet supported
+
+    * UVGA_TRIGGER_LOCATION_END_OF_VGA_IMAGE
+       supported in most modeline configurations. Exception when:
+        - UVGA_DMA_AUTO + frame buffer does not fit totally in SRAM_L + repeat_line > 2. In this
+          mode, DMA channel linking from 1st and 2nd DMA channel are already used. The channel
+          linking of the 3rd DMA channel is used in this case. The trigger occurs a bit later
+          than in all other configuration but it should works properly
+
+    * UVGA_TRIGGER_LOCATION_START_OF_VGA_IMAGE
+       supported in all modeline configurations
+
+
 uvga_error_t uvga.begin(uVGAmodeline *modeline)
 
   Initialize the display

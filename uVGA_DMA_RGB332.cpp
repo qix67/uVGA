@@ -97,6 +97,8 @@ uvga_error_t uVGA::rgb332_dma_init_dma_single_repeat_1()
 	cur_tcd->CSR = DMA_TCD_CSR_ESG | DMA_TCD_CSR_BWC(px_dma_bwc) ;	// enable scatter/gather mode (add  "| DMA_TCD_CSR_INTMAJOR" have a hsync interrupt after image and before blanking time)
 	cur_tcd->BITER = cur_tcd->CITER;
 
+	add_end_of_image_dma_trigger(cur_tcd);
+
 	cur_tcd++;
 
 	// Vblanking TCD configuration
@@ -111,6 +113,14 @@ uvga_error_t uVGA::rgb332_dma_init_dma_single_repeat_1()
 	dump_tcd((DMABaseClass::TCD_t*)px_dma);
 
 	return UVGA_OK;
+}
+
+// ============================================================================
+// enable major loop channel link on given TCD if an end of image DMA trigger is defined
+inline void uVGA::add_end_of_image_dma_trigger(DMABaseClass::TCD_t *cur_tcd)
+{
+	if(end_of_vga_image_dma_num_trigger != -1)
+		cur_tcd->CSR |= DMA_TCD_CSR_MAJORLINKCH(end_of_vga_image_dma_num_trigger) | DMA_TCD_CSR_MAJORELINK;
 }
 
 // ============================================================================
@@ -156,6 +166,10 @@ uvga_error_t uVGA::rgb332_dma_init_dma_single_repeat_more_than_1()
 		cur_tcd->DLASTSGA = (int32_t)(cur_tcd+1);	// scatter/gather mode enabled. At end of major loop of this TCD, switch to the next TCD
 		cur_tcd->CSR = DMA_TCD_CSR_ESG | DMA_TCD_CSR_BWC(px_dma_bwc) ;	// enable scatter/gather mode (add  "| DMA_TCD_CSR_INTMAJOR" have a hsync interrupt after image and before blanking time)
 		cur_tcd->BITER = cur_tcd->CITER;
+
+		// on the last image line, add end of image DMA trigger
+		if(t == (img_h_no_margin - 1))
+			add_end_of_image_dma_trigger(cur_tcd);
 
 		cur_tcd++;
 	}
@@ -255,7 +269,12 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_1()
 		if(t != (img_h_no_margin - 1))
 			cur_tcd->CSR = DMA_TCD_CSR_ESG | DMA_TCD_CSR_BWC(px_dma_bwc) | DMA_TCD_CSR_MAJORLINKCH(sram_u_dma_num) | DMA_TCD_CSR_MAJORELINK ;	// enable scatter/gather mode (add  "| DMA_TCD_CSR_INTMAJOR" have a hsync interrupt after image and before blanking time)
 		else
+		{
 			cur_tcd->CSR = DMA_TCD_CSR_ESG | DMA_TCD_CSR_BWC(px_dma_bwc);	// enable scatter/gather mode (add  "| DMA_TCD_CSR_INTMAJOR" have a hsync interrupt after image and before blanking time)
+
+			// on the last image line, add end of image DMA trigger
+			add_end_of_image_dma_trigger(cur_tcd);
+		}
 
 		cur_tcd->BITER = cur_tcd->CITER;
 
@@ -477,7 +496,12 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_2()
 		if( (t != (img_h_no_margin - 1)) && (sram_l_copy))
 			cur_tcd->CSR = DMA_TCD_CSR_ESG | DMA_TCD_CSR_BWC(px_dma_bwc) | DMA_TCD_CSR_MAJORLINKCH(sram_u_dma_num) | DMA_TCD_CSR_MAJORELINK ;	// enable scatter/gather mode (add  "| DMA_TCD_CSR_INTMAJOR" have a hsync interrupt after image and before blanking time)
 		else
+		{
 			cur_tcd->CSR = DMA_TCD_CSR_ESG | DMA_TCD_CSR_BWC(px_dma_bwc);	// enable scatter/gather mode (add  "| DMA_TCD_CSR_INTMAJOR" have a hsync interrupt after image and before blanking time)
+
+			// on the last image line, add end of image DMA trigger
+			add_end_of_image_dma_trigger(cur_tcd);
+		}
 
 		sram_l_copy = !sram_l_copy;
 
@@ -744,6 +768,9 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_more_than_2()
 			sram_u_dma_fix_tcd->DLASTSGA = -nb_dma_fix * sizeof(DMABaseClass::TCD_t);
 			sram_u_dma_fix_tcd->CSR = 0;
 			sram_u_dma_fix_tcd->BITER = sram_u_dma_fix_tcd->CITER;
+
+			// on the last DMA address fix, add end of image DMA trigger
+			add_end_of_image_dma_trigger(sram_u_dma_fix_tcd);
 			break;
 		}
 	}

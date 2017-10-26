@@ -303,13 +303,52 @@ LED_ON;
 	x1_pin = FTM_channel_to_gpio_pin[hsync_ftm][x1_ftm_channel];
 
 	all_allocated_rows = NULL;
+
+	end_of_vga_line_dma_num_trigger = -1;
+	end_of_vga_image_dma_num_trigger = -1;
 }
 
 // ============================================================================
 // disable frame buffer auto allocation using a static/pre-allocated one
+// must be called BEFORE begin()
+// ============================================================================
 void uVGA::set_static_framebuffer(uint8_t *frame_buffer)
 {
 	all_allocated_rows = frame_buffer;
+}
+
+// ============================================================================
+// trigger DMA channel at various time
+// must be called BEFORE begin()
+// ============================================================================
+void uVGA::trigger_dma_channel(uvga_trigger_location_t location, short int dma_channel_num)
+{
+	if(
+		(dma_channel_num > DMA_NUM_CHANNELS)
+		|| (dma_channel_num == dma_num)
+		|| (dma_channel_num == sram_u_dma_num)
+		|| (dma_channel_num == sram_u_dma_fix_num)
+		|| (dma_channel_num == gfx_dma_num)
+		)
+	{
+		NPRINTLN("trigger_dma_channel: invalid dma_channel_num");
+		return;
+	}
+	
+	switch(location)
+	{
+		case UVGA_TRIGGER_LOCATION_END_OF_VGA_LINE:
+					end_of_vga_line_dma_num_trigger = dma_channel_num;
+					break;
+
+		case UVGA_TRIGGER_LOCATION_END_OF_VGA_IMAGE:
+					end_of_vga_image_dma_num_trigger = dma_channel_num;
+					break;
+
+		case UVGA_TRIGGER_LOCATION_START_OF_VGA_IMAGE:
+					start_of_vga_image_dma_num_trigger = dma_channel_num;
+					break;
+	}
 }
 
 // ============================================================================
@@ -946,6 +985,11 @@ DMABaseClass::TCD_t *uVGA::dma_append_vsync_tcds(DMABaseClass::TCD_t *cur_tcd)
 	cur_tcd->CITER = scr_h - vsync_end_pix + v_top_margin;			// repeat from end of sync to end of screen
 	cur_tcd->DLASTSGA = (uint32_t)px_dma_major_loop;	// scatter/gather mode enabled. At end of major loop of this TCD, switch to the next TCD... the first one
 	cur_tcd->CSR = DMA_TCD_CSR_ESG;	// enable scatter/gather mode (add  "| DMA_TCD_CSR_INTMAJOR" have a vsync interrupt before image and after blanking time)
+
+	// if a DMA channel should be trigger before start of image, trigger it after the last start of Vsync DMA
+	if(start_of_vga_image_dma_num_trigger != -1)
+		cur_tcd->CSR |= DMA_TCD_CSR_MAJORLINKCH(start_of_vga_image_dma_num_trigger) | DMA_TCD_CSR_MAJORELINK;
+
 	cur_tcd->BITER = cur_tcd->CITER;
 	cur_tcd++;
 

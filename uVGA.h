@@ -82,6 +82,13 @@ typedef enum uvga_text_direction
 
 #define SRAM_U_START_ADDRESS				0x20000000
 
+typedef enum
+{
+	UVGA_TRIGGER_LOCATION_END_OF_VGA_LINE,			// after the last pixel of each visible line on screen (not yet supported)
+	UVGA_TRIGGER_LOCATION_END_OF_VGA_IMAGE,		// after the last pixel of last visible line on screen (supported but no available in all modes)
+	UVGA_TRIGGER_LOCATION_START_OF_VGA_IMAGE,	// before the first pixel of first visible line on screen (supported)
+} uvga_trigger_location_t;
+
 // to provide value from EDID or Modeline
 typedef struct
 {
@@ -160,6 +167,11 @@ public:
 
 	// wait next Vsync
 	void waitSync();
+
+	// =========================================================
+	// expert primitives
+	// =========================================================
+	void trigger_dma_channel(uvga_trigger_location_t location, short int dma_channel_num);
 
 	// =========================================================
 	// graphic primitives
@@ -339,6 +351,11 @@ private:
 
 	uint8_t **dma_row_pointer;					// pointer on start of each line used by the DMA
 														// if a line is in SRAM_U and a 2nd DMA 
+	// user DMA triggers
+   short end_of_vga_line_dma_num_trigger; // DMA channel to start after the last pixel of each visible line on screen	 (-1 = none)
+	short end_of_vga_image_dma_num_trigger;// channel to start after the last pixel of last visible line on screen	 (-1 = none)
+	short start_of_vga_image_dma_num_trigger;// channel to start before the first pixel of first visible line on screen	 (-1 = none)
+
 	// GFX settings
 	uint8_t foreground_color;
 	uint8_t background_color;
@@ -369,6 +386,8 @@ private:
 	void stop();
 	void set_pin_alternate_function_to_FTM(int pin_num);
 	uvga_error_t compute_ntsc_video_mode();
+
+	inline void add_end_of_image_dma_trigger(DMABaseClass::TCD_t *cur_tcd);
 
 	inline void wait_idle_gfx_dma();
 	void init_text_settings();
