@@ -28,7 +28,7 @@
 #define NPRINT(args...)    Serial.print(args)
 #define NPRINTLN(args...)  Serial.println(args)
 
-#define DEBUG
+//#define DEBUG
 #ifdef DEBUG
 
 #define DPRINT(args...)    Serial.print(args)
