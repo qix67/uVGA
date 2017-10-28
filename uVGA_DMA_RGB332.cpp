@@ -28,7 +28,7 @@
 #define NPRINT(args...)    Serial.print(args)
 #define NPRINTLN(args...)  Serial.println(args)
 
-//#define DEBUG
+#define DEBUG
 #ifdef DEBUG
 
 #define DPRINT(args...)    Serial.print(args)
@@ -273,7 +273,8 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_1()
 			cur_tcd->CSR = DMA_TCD_CSR_ESG | DMA_TCD_CSR_BWC(px_dma_bwc);	// enable scatter/gather mode (add  "| DMA_TCD_CSR_INTMAJOR" have a hsync interrupt after image and before blanking time)
 
 			// on the last image line, add end of image DMA trigger
-			add_end_of_image_dma_trigger(cur_tcd);
+			if(t == (img_h_no_margin - 1))
+				add_end_of_image_dma_trigger(cur_tcd);
 		}
 
 		cur_tcd->BITER = cur_tcd->CITER;
@@ -499,8 +500,8 @@ uvga_error_t uVGA::rgb332_dma_init_dma_multiple_repeat_2()
 		{
 			cur_tcd->CSR = DMA_TCD_CSR_ESG | DMA_TCD_CSR_BWC(px_dma_bwc);	// enable scatter/gather mode (add  "| DMA_TCD_CSR_INTMAJOR" have a hsync interrupt after image and before blanking time)
 
-			// on the last image line, add end of image DMA trigger
-			add_end_of_image_dma_trigger(cur_tcd);
+			if(t == (img_h_no_margin - 1))
+				add_end_of_image_dma_trigger(cur_tcd);
 		}
 
 		sram_l_copy = !sram_l_copy;

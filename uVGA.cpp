@@ -78,7 +78,7 @@
 #define NPRINT(args...)    Serial.print(args)
 #define NPRINTLN(args...)  Serial.println(args)
 
-//#define DEBUG
+#define DEBUG
 #ifdef DEBUG
 
 #define DPRINT(args...)    Serial.print(args)
@@ -369,7 +369,7 @@ void uVGA::trigger_dma_channel(uvga_trigger_location_t location, short int dma_c
 					end_of_vga_image_dma_num_trigger = dma_channel_num;
 					break;
 
-		case UVGA_TRIGGER_LOCATION_START_OF_VGA_IMAGE:
+		case UVGA_TRIGGER_LOCATION_START_OF_VGA_IMAGE: //ok
 					start_of_vga_image_dma_num_trigger = dma_channel_num;
 					break;
 
