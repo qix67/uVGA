@@ -125,47 +125,6 @@ uVGA::uVGA(int dma_number, int sram_u_dma_number, int sram_u_dma_fix_number, int
 #endif
 															};
 
-	static int FTM_channel_to_dma_sources[4][8] = {
-																	// FTM0
-																	{
-																		DMAMUX_SOURCE_FTM0_CH0, DMAMUX_SOURCE_FTM0_CH1,
-																		DMAMUX_SOURCE_FTM0_CH2, DMAMUX_SOURCE_FTM0_CH3,
-																		DMAMUX_SOURCE_FTM0_CH4, DMAMUX_SOURCE_FTM0_CH5,
-																		DMAMUX_SOURCE_FTM0_CH6, DMAMUX_SOURCE_FTM0_CH7
-																	},
-
-																	// FTM1
-																	{
-																		DMAMUX_SOURCE_FTM1_CH0, DMAMUX_SOURCE_FTM1_CH1,
-																		                     0,                      0,
-																		                     0,                      0,
-																		                     0,                      0
-																	},
-
-																	// FTM2
-																	{
-																		DMAMUX_SOURCE_FTM2_CH0, DMAMUX_SOURCE_FTM2_CH1,
-																		                     0,                      0,
-																		                     0,                      0,
-																		                     0,                      0
-																	},
-
-																	// FTM3
-																	{
-#if FTM3_ADDR == NULL
-																		                     0,                      0,
-																		                     0,                      0,
-																		                     0,                      0,
-																		                     0,                      0
-#else
-																		DMAMUX_SOURCE_FTM3_CH0, DMAMUX_SOURCE_FTM3_CH1,
-																		DMAMUX_SOURCE_FTM3_CH2, DMAMUX_SOURCE_FTM3_CH3,
-																		DMAMUX_SOURCE_FTM3_CH4, DMAMUX_SOURCE_FTM3_CH5,
-																		DMAMUX_SOURCE_FTM3_CH6, DMAMUX_SOURCE_FTM3_CH7
-#endif
-																	}
-																};
-
 	static int FTM_channel_to_gpio_pin[4][8] = {
 														// FTM0
 														{
@@ -254,12 +213,12 @@ LED_ON;
 	if( (hsync_ftm_channel & 1) || (hsync_ftm_channel < 0) || (hsync_ftm_channel > 7))
 		hsync_ftm_channel = 0;
 
-	// x1 FTM channel must be from 0 to 7 and neither hsync FTM channel nor hsync FTM channel +1
-	if( (x1_ftm_channel < 0) || (x1_ftm_channel > 7) || (x1_ftm_channel == hsync_ftm_channel) || (x1_ftm_channel == (hsync_ftm_channel + 1)))
-		x1_ftm_channel = 7;
+	// x1 FTM channel must be from 0 to 6 and neither hsync FTM channel nor hsync FTM channel +1
+	if( (x1_ftm_channel & 1) || (x1_ftm_channel < 0) || (x1_ftm_channel > 7) || (x1_ftm_channel == hsync_ftm_channel) || (x1_ftm_channel == (hsync_ftm_channel + 1)))
+		x1_ftm_channel = 6;
 
 	// x1 FTM channel must be a valid DMA request source
-	if(FTM_channel_to_dma_sources[hsync_ftm][x1_ftm_channel] == 0)
+	if(ftm_channel_to_dma_source(hsync_ftm, x1_ftm_channel) == 0)
 		hsync_ftm = 0;
 
 	hftm = FTM_address[hsync_ftm];
@@ -276,7 +235,7 @@ LED_ON;
 	px_dmamux = (volatile uint8_t *)&(DMAMUX0_CHCFG0) + dma_num;
 	px_dmaprio = dma_chprio[dma_num];
 
-	px_dma_rq_src = FTM_channel_to_dma_sources[hsync_ftm][x1_ftm_channel];
+	px_dma_rq_src = ftm_channel_to_dma_source(hsync_ftm, x1_ftm_channel);
 
 	// select DMA to copy frame buffer line in SRAM_U to SRAM_L
 	sram_u_dma = &(edma_TCD[sram_u_dma_num]);
@@ -306,7 +265,62 @@ LED_ON;
 
 	end_of_vga_line_dma_num_trigger = -1;
 	end_of_vga_image_dma_num_trigger = -1;
+	start_of_vga_image_dma_num_trigger = -1;
+	start_of_display_line_dma_num_trigger = -1;
+
+	clocks_autostart = true;
+	clocks_started = false;
 }
+
+// ============================================================================
+// convert FTMxCHy into DMAmux source
+// ============================================================================
+inline int uVGA::ftm_channel_to_dma_source(short ftm_num, short ftm_channel_num)
+{
+	static int FTM_channel_to_dma_sources[4][8] = {
+																	// FTM0
+																	{
+																		DMAMUX_SOURCE_FTM0_CH0, DMAMUX_SOURCE_FTM0_CH1,
+																		DMAMUX_SOURCE_FTM0_CH2, DMAMUX_SOURCE_FTM0_CH3,
+																		DMAMUX_SOURCE_FTM0_CH4, DMAMUX_SOURCE_FTM0_CH5,
+																		DMAMUX_SOURCE_FTM0_CH6, DMAMUX_SOURCE_FTM0_CH7
+																	},
+
+																	// FTM1
+																	{
+																		DMAMUX_SOURCE_FTM1_CH0, DMAMUX_SOURCE_FTM1_CH1,
+																		                     0,                      0,
+																		                     0,                      0,
+																		                     0,                      0
+																	},
+
+																	// FTM2
+																	{
+																		DMAMUX_SOURCE_FTM2_CH0, DMAMUX_SOURCE_FTM2_CH1,
+																		                     0,                      0,
+																		                     0,                      0,
+																		                     0,                      0
+																	},
+
+																	// FTM3
+																	{
+#if FTM3_ADDR == NULL
+																		                     0,                      0,
+																		                     0,                      0,
+																		                     0,                      0,
+																		                     0,                      0
+#else
+																		DMAMUX_SOURCE_FTM3_CH0, DMAMUX_SOURCE_FTM3_CH1,
+																		DMAMUX_SOURCE_FTM3_CH2, DMAMUX_SOURCE_FTM3_CH3,
+																		DMAMUX_SOURCE_FTM3_CH4, DMAMUX_SOURCE_FTM3_CH5,
+																		DMAMUX_SOURCE_FTM3_CH6, DMAMUX_SOURCE_FTM3_CH7
+#endif
+																	}
+																};
+
+	return FTM_channel_to_dma_sources[ftm_num][ftm_channel_num];
+}
+
 
 // ============================================================================
 // disable frame buffer auto allocation using a static/pre-allocated one
@@ -315,6 +329,16 @@ LED_ON;
 void uVGA::set_static_framebuffer(uint8_t *frame_buffer)
 {
 	all_allocated_rows = frame_buffer;
+}
+
+// ============================================================================
+// disable automatic start of VGA clocks. clocks_start() must be explicitly called
+// to start image production.
+// must be called BEFORE begin()
+// ============================================================================
+void uVGA::disable_clocks_autostart()
+{
+	clocks_autostart = false;
 }
 
 // ============================================================================
@@ -348,11 +372,16 @@ void uVGA::trigger_dma_channel(uvga_trigger_location_t location, short int dma_c
 		case UVGA_TRIGGER_LOCATION_START_OF_VGA_IMAGE:
 					start_of_vga_image_dma_num_trigger = dma_channel_num;
 					break;
+
+		case UVGA_TRIGGER_LOCATION_START_OF_DISPLAY_LINE:
+					start_of_display_line_dma_num_trigger = dma_channel_num;
+					break;
 	}
 }
 
 // ============================================================================
 // start video
+// ============================================================================
 uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 {
 	static volatile uint32_t *pin_psor[] = {
@@ -680,13 +709,13 @@ uvga_error_t uVGA::begin(uVGAmodeline *modeline)
 	// not possible to initialize this earlier
 	init_text_settings();
 
-	clocks_init();
-	signal_pins_init();
-
 	if((ret = dma_init()) != UVGA_OK)
 		return ret;
 
-	clocks_start();
+	if(clocks_autostart)
+	{
+		clocks_start();
+	}
 
 	return UVGA_OK;
 }
@@ -732,9 +761,17 @@ void uVGA::clocks_init()
 	hftm->COMBINE = ((hftm->COMBINE & ~(0x000000FF << channel_shift))
 							| ((FTM_COMBINE_COMBINE0 | FTM_COMBINE_COMP0) << channel_shift));
 
-	// set pwm mode for x1 (same FTM as hsync thus must be set before SC
+	// set pwm mode for x1 (same FTM as hsync thus must be set before SC)
 	hftm->C[x1_ftm_channel].SC = 0b00100100 | FTM_CSC_DMA | FTM_CSC_CHIE;					// (start high until value then low), generate signal for DMAMUX (CHIE is required to have request routed to DMAMUX (see Reference Manual 43.5.14 DMA)
 	hftm->C[x1_ftm_channel].V = hpos_shift;		// increase this value to move the screen to the right
+
+	// set pwm mode for x1+1 channel. This channel is not used by the library itself 
+	// it is used to generate a "start of line event" which is used by UVGA_TRIGGER_LOCATION_START_OF_DISPLAY_LINE trigger
+	if(start_of_display_line_dma_num_trigger != -1)
+	{
+		hftm->C[x1_ftm_channel+1].SC = 0b00101000 | FTM_CSC_DMA | FTM_CSC_CHIE;					// (start low until value then high), generate signal for DMAMUX (CHIE is required to have request routed to DMAMUX (see Reference Manual 43.5.14 DMA)
+		hftm->C[x1_ftm_channel+1].V = hpos_shift;		// increase this value to move the screen to the right
+	}
 
 	hftm->SC = FTM_SC_CLKS(1) | FTM_SC_PS(FTM_prescaler_to_selection(hftm_prescaler));
 	// here, FTM is not started but read
@@ -1147,7 +1184,21 @@ void uVGA::clocks_start()
 	int loop_delay= - 1;
 	int frame_num;
 
+	// function already called ?
+	if(clocks_started)
+		return;
+
+	clocks_init();
+	signal_pins_init();
+	delay(1000);	// let time to monitor to sync
+
 	DPRINTLN("start clock");
+
+	if(start_of_display_line_dma_num_trigger != -1)
+	{
+		// reconfigure user external DMA to trigger on hardware event generated by FTM channel X1+1
+ 		*((volatile uint8_t *)&(DMAMUX0_CHCFG0) + start_of_display_line_dma_num_trigger) = DMAMUX_ENABLE | ftm_channel_to_dma_source(hsync_ftm, x1_ftm_channel + 1);
+	}
 
 	hftm->MODE |= FTM_MODE_FTMEN; 	// start hftm.
 
@@ -1246,6 +1297,8 @@ void uVGA::clocks_start()
 		NPRINTLN("==========================");
 		NPRINTLN("==========================");
 	}
+
+	clocks_started = true;
 }
 
 // ============================================================================

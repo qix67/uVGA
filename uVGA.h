@@ -86,7 +86,8 @@ typedef enum
 {
 	UVGA_TRIGGER_LOCATION_END_OF_VGA_LINE,			// after the last pixel of each visible line on screen (not yet supported)
 	UVGA_TRIGGER_LOCATION_END_OF_VGA_IMAGE,		// after the last pixel of last visible line on screen (supported but no available in all modes)
-	UVGA_TRIGGER_LOCATION_START_OF_VGA_IMAGE,	// before the first pixel of first visible line on screen (supported)
+	UVGA_TRIGGER_LOCATION_START_OF_VGA_IMAGE,		// before the first pixel of first visible line on screen (supported)
+	UVGA_TRIGGER_LOCATION_START_OF_DISPLAY_LINE,	// when beam starts a new line (with or without pixel)
 } uvga_trigger_location_t;
 
 // to provide value from EDID or Modeline
@@ -147,7 +148,7 @@ public:
 	//          VSYNC on pin 29 (teensy 3.5, 3.6), 10 (teensy 3.2)
 	//          gfx_dma = last dma channel available
 	// =========================================================
-	uVGA(int dma_number = 0, int sram_u_dma_number = 0, int sram_u_dma_fix_number = 0, int hsync_ftm_num = 0, int hsync_ftm_channel_num = 0, int x1_ftm_channel_num = 7,int vsync_pin = DEFAULT_VSYNC_PIN, int graphic_dma = DMA_NUM_CHANNELS - 1);
+	uVGA(int dma_number = 0, int sram_u_dma_number = 0, int sram_u_dma_fix_number = 0, int hsync_ftm_num = 0, int hsync_ftm_channel_num = 0, int x1_ftm_channel_num = 6,int vsync_pin = DEFAULT_VSYNC_PIN, int graphic_dma = DMA_NUM_CHANNELS - 1);
 
 	// disable frame buffer auto allocation using a static/pre-allocated one
 	// the frame buffer should be declared as:
@@ -172,6 +173,8 @@ public:
 	// expert primitives
 	// =========================================================
 	void trigger_dma_channel(uvga_trigger_location_t location, short int dma_channel_num);
+	void disable_clocks_autostart();
+	void clocks_start();
 
 	// =========================================================
 	// graphic primitives
@@ -215,6 +218,10 @@ private:
 	DMAChannel dmachan2;
 	DMAChannel dmachan3;	
 
+	// 
+	bool clocks_autostart;
+	bool clocks_started;
+
 	// width and height of the image (comes from begin() call)
 	short img_w;
 	short img_h;				// height of screen including top and bottom margin
@@ -243,7 +250,7 @@ private:
 	short v_top_margin;			// number of empty lines at top of the screen
 	short v_bottom_margin;		// number of empty lines at bottom of the screen
 
-	// pixel clock = at least (PIT frequency / PIT overflow value)
+	// pixel clock
 	int pxc_freq;			// frequency of the pixel clock
 	int pxc_base_freq;	// FTM base frequency
 
@@ -266,7 +273,7 @@ private:
 
 	short hsync_pin;			// pin sending Hsync signal
 
-	short x1_ftm_channel;	// FTM channel to use on hsync_ftm to general horizontal visible signal (used to mitigate PIT trigger on DMA)
+	short x1_ftm_channel;	// FTM channel to use on hsync_ftm to general horizontal visible signal
 
 	short x1_pin;
 
@@ -355,6 +362,7 @@ private:
    short end_of_vga_line_dma_num_trigger; // DMA channel to start after the last pixel of each visible line on screen	 (-1 = none)
 	short end_of_vga_image_dma_num_trigger;// channel to start after the last pixel of last visible line on screen	 (-1 = none)
 	short start_of_vga_image_dma_num_trigger;// channel to start before the first pixel of first visible line on screen	 (-1 = none)
+	short start_of_display_line_dma_num_trigger;// channel to start each time beam start a new line (having pixel or not) (-1 = none)
 
 	// GFX settings
 	uint8_t foreground_color;
@@ -372,6 +380,7 @@ private:
 
 	void clocks_init();
 	void signal_pins_init();
+
 	uvga_error_t dma_init();
 	uvga_error_t rgb332_dma_init_dma_single_repeat_1();
 	uvga_error_t rgb332_dma_init_dma_single_repeat_more_than_1();
@@ -382,10 +391,9 @@ private:
 
 	DMABaseClass::TCD_t *dma_append_vsync_tcds(DMABaseClass::TCD_t *cur_tcd);
 	
-	void clocks_start();
 	void stop();
 	void set_pin_alternate_function_to_FTM(int pin_num);
-	uvga_error_t compute_ntsc_video_mode();
+	inline int ftm_channel_to_dma_source(short ftm_num, short ftm_channel_num);
 
 	inline void add_end_of_image_dma_trigger(DMABaseClass::TCD_t *cur_tcd);
 
