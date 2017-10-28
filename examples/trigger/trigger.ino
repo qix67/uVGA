@@ -27,12 +27,12 @@ void setup()
 	delay(5000);
 
 	start_img_dma.begin(false);
-	start_img_dma.sourceCircular(led_port_pin, 4);
+	start_img_dma.sourceBuffer(led_port_pin, 4);
 	start_img_dma.destination(CORE_PIN13_PORTCLEAR);
 	uvga.trigger_dma_channel(UVGA_TRIGGER_LOCATION_START_OF_VGA_IMAGE, start_img_dma.channel);
 
 	end_img_dma.begin(false);
-	end_img_dma.sourceCircular(led_port_pin,4);
+	end_img_dma.sourceBuffer(led_port_pin,4);
 	end_img_dma.destination(CORE_PIN13_PORTSET);
 	uvga.trigger_dma_channel(UVGA_TRIGGER_LOCATION_END_OF_VGA_IMAGE, end_img_dma.channel);
 

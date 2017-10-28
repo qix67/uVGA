@@ -170,7 +170,7 @@ color format is RGB332 (RRRGGGBB)
 
 >>>before the first pixel of first image line. Warning the coordinates of the trigger is NOT x = -1, y = 0 (the "pixel" on the left of the first pixel of the image) but x = 0, y = -1 (the "pixel" above the first pixel of the image) which is technically the last time the VSync TCD is called.
 
->>* *UVGA_TRIGGER_LOCATION_END_OF_DISPLAY_LINE*
+>>* *UVGA_TRIGGER_LOCATION_START_OF_DISPLAY_LINE*
 
 >>>immediately after the beam moved to the left. Occurs if line has pixel or not.
 
