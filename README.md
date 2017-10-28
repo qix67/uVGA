@@ -89,13 +89,13 @@ DMAMEM area and uses *UVGA_HREZ*, *UVGA_VREZ*, *UVGA_RPTL* #define created in
 uVGA_valid_settings.h
 
 
-2. Colours
+2 Colours
 ---
 
 color format is RGB332 (RRRGGGBB)
 
 
-3. API
+3 API
 ---
 
 >class instantiation
@@ -358,7 +358,7 @@ color format is RGB332 (RRRGGGBB)
 >>  These functions wait for the beam position to be off-screen. waitBeam will return   immediately if the beam is already off-screen, waitSync will always wait for the   next frame. These can be used to reduce flicker.
 
 
-4. modeline
+4 modeline
 ---
 
 Used resolution is described using a modeline stored in an uVGAmodeline structure. Most of the data can be obtain from a standard modeline    for Xorg server.
@@ -491,7 +491,7 @@ Some additionnal settings allow fine tuning of the video mode
      - *UVGA_DMA_SINGLE* : force library to use only one DMA channel
 
 
-5. Miscellanous informations
+5 Miscellanous informations
 ---
 
 * To enable debug mode in the library, edit uVGA.cpp and uncomment the line
@@ -513,7 +513,7 @@ Some additionnal settings allow fine tuning of the video mode
 >+1 comes from the black pixel added at the end of each line. **UVGA_FB_ROW_STRIDE** macro computes this automatically
 
 
-6. How it works
+6 How it works
 ---
 
 
