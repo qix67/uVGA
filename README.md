@@ -1,7 +1,7 @@
 # uVGA library
 #### by Eric PREVOTEAU
 
-1. Quick start
+1 Quick start
 ---
 
 Import zip file using Arduino IDE library manager
@@ -12,12 +12,12 @@ place this folder in your libraries directory and start or restart the Arduino I
 ---
 
 * Hsync pin (default: **22**) -> 82R resistor -> VGA 13
->*depend on HSync FTM channel*
+    *depend on HSync FTM channel*
 
 * Vsync pin (default: **29**) -> 82R resistor -> VGA 14
->*can be changed to any pin except pin of port D*
+    *can be changed to any pin except pin of port D*
 
->>on teensy 3.2, default Vsync pin is pin 10.
+    on teensy 3.2, default Vsync pin is pin 10.
 
 * Teensy __pin 5__  (port D, bit 7) -> 470R resistor -> VGA pin 1 (red)
 
@@ -271,7 +271,7 @@ color format is RGB332 (RRRGGGBB)
 * void **uvga.drawEllipse**(int x0, int y0, int x1, int y1, int col);
 * void **uvga.fillEllipse**(int x0, int y0, int x1, int y1, int col);
 
-  Draw or fill ellipse bounded by rectangle (x0,y0),(x1,y1) in colour col
+>>  Draw or fill ellipse bounded by rectangle (x0,y0),(x1,y1) in colour col
 
 
 * void **uvga.drawText**(const char *text, int x, int y, int fgcol, int bgcol= -1, uvga_text_direction dir = UVGA_DIR_RIGHT);
