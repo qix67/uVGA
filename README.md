@@ -156,11 +156,13 @@ color format is RGB332 (RRRGGGBB)
 
 >>If used, this function <u>MUST</u> be called <u>before</u> **uvga.begin** call.
 
+>>It is possible to trigger multiple events but only one DMA channel can be trigger by one event.
+
 >>Possible locations are:
 
->>* *UVGA_TRIGGER_LOCATION_END_OF_VGA_LINE*
+>>* *UVGA_TRIGGER_LOCATION_END_OF_DISPLAY_LINE*
 
->>>immediately after the last pixel of each image line. If the next line is stored in SRAM_U, the DMA will be started after DMA channel copying the line from SRAM_U to SRAM_L buffer
+>>>when HSync occurs, whenever line has pixels or not.
 
 >>* *UVGA_TRIGGER_LOCATION_END_OF_VGA_IMAGE*
 
@@ -172,21 +174,22 @@ color format is RGB332 (RRRGGGBB)
 
 >>* *UVGA_TRIGGER_LOCATION_START_OF_DISPLAY_LINE*
 
->>>immediately after the beam moved to the left. Occurs if line has pixel or not.
-
->>If both *UVGA_TRIGGER_LOCATION_END_OF_VGA_LINE* and *UVGA_TRIGGER_LOCATION_END_OF_VGA_LINE* are used, on the last line, only DMA channel specified by *UVGA_TRIGGER_LOCATION_END_OF_VGA_LINE*  will be trigger. The solution is to let this end of image DMA channel trigger end of line DMA channel.
-
+>>>immediately after the beam moved to the left. Occurs whenever line has pixel or not.
 
 >>Usage restriction:
 
->>* *UVGA_TRIGGER_LOCATION_END_OF_VGA_LINE*
+>>* *UVGA_TRIGGER_LOCATION_END_OF_DISPLAY_LINE*
 
->>>not yet supported
+>>><u>It depends on Hsync polarity</u>. If polarity is positive, it occurs at position modeline.hsync_start. If polarity is negative, it occurs at modeline.hsync_end. This trigger generates a DMAMux event linked to FTM = hsync_ftm_num, channel = hsync_ftm_channel_num
 
 >>* *UVGA_TRIGGER_LOCATION_END_OF_VGA_IMAGE*
 
 >>>supported in most modeline configurations. Exception when:
 >>>>- UVGA_DMA_AUTO + frame buffer does not fit totally in SRAM_L + repeat_line > 2. In this mode, DMA channel linking from 1st and 2nd DMA channel are already used. The channel linking of the 3rd DMA channel is used in this case. The trigger occurs a bit later than in all other configuration but it should works properly
+>>>>- Not available if frame buffer fit totally in SRAM_L + repeat_line = 1 + vertical resolution > 511.
+>>>>- Not available if UVGA_DMA_AUTO + frame buffer does not fit totally in SRAM_L + repeat_line = 1 + first line in SRAM_U is > 511.
+
+>>>The 2 modes where this trigger is not available should not be a problem as they only occurs if horizonal resolution is ridiculously small (<128 and ~ <200 pixels/line)
 
 >>* *UVGA_TRIGGER_LOCATION_START_OF_VGA_IMAGE*
 
@@ -194,7 +197,9 @@ color format is RGB332 (RRRGGGBB)
 
 >>* *UVGA_TRIGGER_LOCATION_START_OF_DISPLAY_LINE*
 
->>> supported in all modeline configurations. This trigger generate a DMAMux event linked to FTM = hsync_ftm_num, channel = x1_ftm_channel_num + 1
+>>> supported in all modeline configurations. This trigger generates a DMAMux event linked to FTM = hsync_ftm_num, channel = x1_ftm_channel_num + 1
+
+>><u>Manually modifiying DMAMux configuration to route the DMAMux event to multiple DMA channels will result in unpredictable behavior (see Kinetis Reference Manual, 23.4.1 Channel Configuration register *DMAMUX_CHCFGn*).</u> The same result can be obtained by using several DMA channels linked together.
 
 
 * void **uvga.disable_clocks_autostart**()

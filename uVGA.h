@@ -84,9 +84,9 @@ typedef enum uvga_text_direction
 
 typedef enum
 {
-	UVGA_TRIGGER_LOCATION_END_OF_VGA_LINE,			// after the last pixel of each visible line on screen (not yet supported)
-	UVGA_TRIGGER_LOCATION_END_OF_VGA_IMAGE,		// after the last pixel of last visible line on screen (supported but no available in all modes)
-	UVGA_TRIGGER_LOCATION_START_OF_VGA_IMAGE,		// before the first pixel of first visible line on screen (supported)
+	UVGA_TRIGGER_LOCATION_END_OF_DISPLAY_LINE,	// when Hsync occurs (trigger may be delayed depending on Hsync polarity)
+	UVGA_TRIGGER_LOCATION_END_OF_VGA_IMAGE,		// after the last pixel of last visible line on screen
+	UVGA_TRIGGER_LOCATION_START_OF_VGA_IMAGE,		// before the first pixel of first visible line on screen
 	UVGA_TRIGGER_LOCATION_START_OF_DISPLAY_LINE,	// when beam starts a new line (with or without pixel)
 } uvga_trigger_location_t;
 
@@ -359,7 +359,7 @@ private:
 	uint8_t **dma_row_pointer;					// pointer on start of each line used by the DMA
 														// if a line is in SRAM_U and a 2nd DMA 
 	// user DMA triggers
-   short end_of_vga_line_dma_num_trigger; // DMA channel to start after the last pixel of each visible line on screen	 (-1 = none)
+   short end_of_display_line_dma_num_trigger; // channel to start when Hsync occurs (start or end depending on hsync polarity) (-1 = none)
 	short end_of_vga_image_dma_num_trigger;// channel to start after the last pixel of last visible line on screen	 (-1 = none)
 	short start_of_vga_image_dma_num_trigger;// channel to start before the first pixel of first visible line on screen	 (-1 = none)
 	short start_of_display_line_dma_num_trigger;// channel to start each time beam start a new line (having pixel or not) (-1 = none)
