@@ -199,6 +199,8 @@ LED_ON;
 	// select Hsync FTM to use
 	hsync_ftm = hsync_ftm_num;
 	hsync_ftm_channel = hsync_ftm_channel_num;
+
+	// select Vsync FTM to use
 	x1_ftm_channel = x1_ftm_channel_num;
 
 	// hsync FTM from 0 to 3
@@ -222,9 +224,6 @@ LED_ON;
 		hsync_ftm = 0;
 
 	hftm = FTM_address[hsync_ftm];
-
-	// select Vsync FTM to use
-	x1_ftm_channel = x1_ftm_channel_num;
 
 	// share DMA settings
 	edma = EDMA_ADDR;
@@ -304,7 +303,7 @@ inline int uVGA::ftm_channel_to_dma_source(short ftm_num, short ftm_channel_num)
 
 																	// FTM3
 																	{
-#if FTM3_ADDR == NULL
+#ifndef HAVE_FTM3_ADDR 
 																		                     0,                      0,
 																		                     0,                      0,
 																		                     0,                      0,

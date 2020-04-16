@@ -69,9 +69,9 @@ typedef struct __attribute__((packed))
 #define FTM2_ADDR NULL
 #endif
 
-#if 0
-//defined(FTM3_SC)
+#if (defined(FTM3_SC) && defined(DMAMUX_SOURCE_FTM3_CH0))
 #define FTM3_ADDR ((FTM_REGS_t*)(&FTM3_SC))
+#define HAVE_FTM3_ADDR
 #else
 #define FTM3_ADDR NULL
 #endif
